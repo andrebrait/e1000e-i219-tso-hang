@@ -1,0 +1,95 @@
+# Hang capture 20261018T104845Z (proxmox-6, I219-LM 8086:15bb, e1000e on 7.0.14-24-pve, offloads at defaults)
+
+## Hang message and register dump (first occurrence)
+e1000e 0000:00:1f.6 eno1: Detected Hardware Unit Hang:
+                                   TDH                  <7f>
+                                   TDT                  <b9>
+                                   next_to_use          <b9>
+                                   next_to_clean        <7e>
+                                 buffer_info[next_to_clean]:
+                                   time_stamp           <fffd0250>
+                                   next_to_watch        <7f>
+                                   jiffies              <fffd0d01>
+                                   next_to_watch.status <0>
+                                 MAC Status             <80083>
+                                 PHY Status             <796d>
+                                 PHY 1000BASE-T Status  <3800>
+                                 PHY Extended Status    <3000>
+                                 PCI Status             <10>
+e1000e 0000:00:1f.6: Net device Info
+e1000e: Device Name     state            trans_start
+e1000e: eno1            0000000000000003 00000000FFFD0D01
+e1000e 0000:00:1f.6: Register Dump
+e1000e:  Register Name   Value
+e1000e: CTRL            581b0240
+e1000e: STATUS          00080083
+e1000e: CTRL_EXT        995a1026
+e1000e: ICR             00000000
+e1000e: RCTL            0400801a
+e1000e: RDLEN           00001000
+e1000e: RDH             00000070
+e1000e: RDT             00000060
+e1000e: RDTR            00000000
+e1000e: RXDCTL[0-1]     00010000 00010000
+e1000e: ERT             00000000
+e1000e: RDBAL           fffea000
+e1000e: RDBAH           00000000
+e1000e: RDFH            000005c8
+e1000e: RDFT            000005c6
+e1000e: RDFHS           000005c6
+e1000e: RDFTS           000005c6
+e1000e: RDFPC           00000033
+e1000e: TCTL            3103f0fa
+e1000e: TDBAL           fffed000
+e1000e: TDBAH           00000000
+e1000e: TDLEN           00001000
+e1000e: TDH             0000007f
+e1000e: TDT             000000b9
+e1000e: TIDV            00000008
+e1000e: TXDCTL[0-1]     0141001f 0141001f
+e1000e: TADV            00000020
+e1000e: TARC[0-1]       0d800403 45000403
+e1000e: TDFH            00000ef0
+e1000e: TDFT            00000ef0
+e1000e: TDFHS           00000ef0
+e1000e: TDFTS           00000ef0
+e1000e: TDFPC           00000000
+e1000e 0000:00:1f.6: Tx Ring Summary
+e1000e: Queue [NTU] [NTC] [bi(ntc)->dma  ] leng ntw timestamp
+e1000e:      0    B9    7E 0000000000000000 0042  7F 00000000FFFD0250
+e1000e 0000:00:1f.6: Tx Ring Dump
+e1000e: Tl[desc]     [address 63:0  ] [SpeCssSCmCsLen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Legacy format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Td[0x000]    00000000FEFFE22C 00000000261017A0 0000000000000000 17A0    0 0000000000000000 0000000000000000
+
+## TX descriptor ring around next_to_clean (NETIF_MSG_TX_DONE dump)
+e1000e: Tl[desc]     [address 63:0  ] [SpeCssSCmCsLen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Legacy format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Tc[0x07C]    0000322200000000 0000000021000000 0000000000000000 0042   7D 0000000000000000 0000000000000000
+e1000e: Td[0x07D]    00000000FFF56800 00000000AB1005EA 0000000000000000 05EA   7D 0000000000000000 0000000000000000
+e1000e: Tc[0x07E]    000032220021180E 05A8420027000B50 0000000000000000 0042   7F 00000000FFFD0250 0000000000000000 NTC
+e1000e: Td[0x07F]    00000000FFB3CFC0 00000300AF100B92 00000000FFB3CFC0 0B92   7F 00000000FFFD0250 0000000049dd4e81
+e1000e: Tc[0x080]    000032220021180E 05A8420027002798 0000000000000000 0042   84 00000000FFFD0250 0000000000000000
+e1000e: Td[0x081]    00000000FFF33740 0000030026100046 00000000FFF33740 0046   81 00000000FFFD0250 0000000000000000
+e1000e: Td[0x082]    00000000FFE00004 00000300261017A0 00000000FFE00004 17A0   82 00000000FFFD0250 0000000000000000
+e1000e: Td[0x083]    00000000FF1557A4 000003002610085C 00000000FF1557A4 085C   83 00000000FFFD0250 0000000000000000
+e1000e: Td[0x084]    00000000FF7E8000 00000300AF100798 00000000FF7E8000 0798   84 00000000FFFD0250 000000007a2307c5
+e1000e: Tc[0x085]    0000322200000000 0000000021000000 0000000000000000 17A0   86 00000000FFFD0251 0000000000000000
+e1000e: Td[0x086]    00000000FF9DF1FE 00000200AB100042 00000000FF9DF1FE 0042   86 00000000FFFD0251 000000008d22f7ac
+e1000e: Tc[0x087]    0000282200000000 0000000020000000 0000000000000000 0798   88 00000000FFFD0251 0000000000000000
+e1000e: Td[0x088]    00000000FFE96182 00000200AB1000AA 00000000FFE96182 00AA   88 00000000FFFD0251 000000001e3f8283
+e1000e: Tc[0x089]    0000322200000000 0000000021000000 0000000000000000 0046   8A 00000000FFFD0251 0000000000000000
+e1000e: Td[0x08A]    00000000FFFAAEBE 00000200AB100042 00000000FFFAAEBE 0042   8A 00000000FFFD0251 0000000055ae7d36
+
+## Instrumented driver: TSO packet layout log (trace_printk in e1000_xmit_frame)
+TSO packets logged: 31520; linear (frags=0): 770; headers crossing 4 KB: 3; linear part crossing 4 KB but not the headers: 1726
+
+Stuck packet (ring index next_to_clean = 0x7e = 126):
+104.942690: e1000e-tso idx=126 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+
+All packets with headers crossing 4 KB in the log (the last one is the stuck packet):
+103.749091: e1000e-tso idx=70 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+103.852834: e1000e-tso idx=29 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+104.942690: e1000e-tso idx=126 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1

@@ -1,0 +1,9 @@
+[Unit]
+Description=e1000e hang debugger (proxmox-6 only): driver dumps, xmit trace, capture, reboot only if dead
+After=network-online.target systemd-journald.service
+[Service]
+ExecStart=/usr/local/sbin/e1000e-debug-watch.sh eno1 10.0.255.34
+Restart=always
+RestartSec=5s
+[Install]
+WantedBy=multi-user.target

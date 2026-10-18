@@ -1,0 +1,169 @@
+From c8d1ca607e32b15ea1a0a720f6877d04ca757dbc Mon Sep 17 00:00:00 2001
+From: Andre Brait <andrebrait@gmail.com>
+Date: Sun, 18 Oct 2026 21:01:59 +0200
+Subject: [PATCH iwl-net] e1000e: segment TSO packets whose headers cross a 4
+ KB boundary
+
+On I219-LM (8086:15bb) and I219-V (8086:15bc), the transmit DMA can stop
+for good on a TSO packet whose protocol headers cross a 4 KB boundary in
+the buffer that holds them. The packet's data descriptor is never
+written back, e1000e logs "Detected Hardware Unit Hang" every two
+seconds, and the link stays down until the adapter is reset.
+
+The host's own TCP stack does not produce such packets: its TSO skbs
+keep the headers in a small linear head and the payload in page
+fragments. Forwarded guest traffic does: tun/vhost-net copies a VM's
+small GSO packet into a single linear buffer from a page fragment, which
+can start anywhere in a page. On hypervisor hosts bridging virtio-net
+guests onto the I219, this hung the NIC every 6 to 9 minutes under mixed
+guest and host traffic.
+
+At each hang, the ring dump (NETIF_MSG_HW | NETIF_MSG_TX_DONE) shows a
+TSO context descriptor followed by a single data descriptor holding
+header and payload (TSE | EOP, status 0) at TDH, a buffer starting at
+page offset 0xfc0 with 66 bytes of headers, an empty TX FIFO (TDFH ==
+TDFT), normal link, PHY and PCI status, and no IOMMU fault. Logging
+every TSO packet's layout in e1000_xmit_frame() showed that each stuck
+packet had its headers crossing a 4 KB boundary, while such packets were
+about 0.03% of TSO traffic; linear TSO packets crossing a page only
+after the headers never hung. Not every header-crossing packet hangs
+(between 1 in 3 and 1 in 37 here), which suggests a race inside the NIC.
+
+Before the queue stops, the NIC also transmits corrupted payload. With a
+generator whose receiver checks every byte, each of 10 hangs came with
+whole TCP segments carrying the stream data from 128 bytes earlier, with
+a valid TCP checksum, so the receiver accepted them.
+
+Implement ndo_features_check to clear the GSO features for TCP GSO
+packets whose headers cross a 4 KB boundary, so the stack segments those
+in software. All other packets keep TSO and checksum offload.
+
+Tested on I219-LM with upstream v7.0.14 e1000e, built with and without
+this patch, under identical verified guest and host traffic: without it,
+5 hangs (each with corrupted payload) in 64 minutes; with it, no hang and
+no corrupted byte in 4 hours (1.5 TB of TCP verified), and no change in
+throughput or packet loss.
+
+The problem was diagnosed and this fix was written with the help of an
+AI coding assistant (Claude, by Anthropic), which designed the
+instrumentation, analysed the captures and drafted the patch and this
+message. The tests ran on my hardware; see below the cut for details.
+
+Fixes: bc7f75fa9788 ("[E1000E]: New pci-express e1000 driver (currently for ICH9 devices only)")
+Assisted-by: LLM
+---
+
+Notes:
+    How AI was used. The investigation ran as one long session with Claude
+    (Anthropic) acting as a coding agent with root SSH access to two test
+    hosts. It wrote the debug tooling (a hang watcher that captures the
+    ring dump via msglvl, an ftrace of every transmit, and an e1000e build
+    that logs each TSO skb's layout), the traffic generators, analysed the
+    captures, proposed the header-crossing hypothesis, and drafted the fix
+    and the changelog. I provided the hardware, directed the work, insisted
+    on a reproducer whose receiver verifies every byte and on an A/B test
+    where the patch is the only difference, and reviewed the results and
+    the patch.
+    
+    Testing:
+    - Hardware: I219-LM 8086:15bb rev 10 (HP ProDesk 600 G5 Mini), NVM 0.5-4,
+      1000 Mb/s full duplex, EEE and flow control on, VT-d on.
+    - Kernel 7.0.14 (Proxmox VE 9.2). Both modules were built from the same
+      v7.0.14 e1000e tree, with and without this patch; a fingerprint of the
+      rest of the setup (scripts, units, VM configuration, kernels, offloads,
+      MTU, EEE, flow control, command line) was identical for both runs.
+    - Traffic: a virtio-net/vhost-net guest bridged onto the I219 sending TCP
+      bulk data and small UDP datagrams to a second host, plus 8 TCP streams
+      with MSS 536 from the host in both directions. The receiver checks
+      every byte of every TCP stream and every UDP datagram.
+    - Without the patch: 5 hangs in 64 minutes. Each came with corrupted TCP
+      payload at the moment the hang began (whole segments holding the stream
+      data from 128 bytes earlier, valid checksum). Proxmox's own e1000e
+      build behaved the same (5 hangs in 35 minutes).
+    - With the patch: 4 h 12 min, no hang, no corrupted byte (1.51 TB of TCP
+      and 720,203 UDP datagrams verified), throughput unchanged (795-813 Mb/s
+      against 794-813 Mb/s), UDP loss unchanged (0.022% against 0.021%), no
+      kernel warnings. A kretprobe on e1000_features_check() over 2 minutes
+      saw 8,612,900 calls, 64 of which returned the features without
+      NETIF_F_TSO | NETIF_F_TSO6.
+    - This patch applies to net-queue dev-queue (0344a46e40a4) and all
+      e1000e objects compile there with W=1 without warnings. It was not
+      runtime-tested on a dev-queue kernel, only on 7.0.14.
+    
+    Not done or not known:
+    - The fix was only tested on I219-LM. An I219-V (8086:15bc rev 10,
+      Lenovo M720q) hung the same way in production but was not on the test
+      bench. No other e1000e MAC (82574, 82579, I217/I218) was tested; the
+      check applies to all e1000e devices because it only affects packets
+      whose headers cross a 4 KB boundary.
+    - Traffic from an unprivileged guest is enough to trigger the hang, so
+      on affected hosts a guest can take the host's network down.
+    - What goes wrong inside the NIC is unknown. Is this a known I219
+      erratum, and which MACs does it affect? If Intel documents a
+      narrower condition, the check can be tightened.
+    
+    The hang captures, per-packet statistics and the reproducer are
+    available on request.
+
+ drivers/net/ethernet/intel/e1000e/netdev.c | 31 +++++++++++++++++++++-
+ 1 file changed, 30 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/intel/e1000e/netdev.c b/drivers/net/ethernet/intel/e1000e/netdev.c
+index 834a5b888..6f95ed19a 100644
+--- a/drivers/net/ethernet/intel/e1000e/netdev.c
++++ b/drivers/net/ethernet/intel/e1000e/netdev.c
+@@ -11,6 +11,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/delay.h>
+ #include <linux/netdevice.h>
++#include <linux/sizes.h>
+ #include <linux/interrupt.h>
+ #include <linux/tcp.h>
+ #include <linux/ipv6.h>
+@@ -7359,6 +7360,34 @@ static int e1000_set_features(struct net_device *netdev,
+ 	return 1;
+ }
+ 
++/**
++ * e1000_features_check - validate offloads for a packet about to be sent
++ * @skb: packet to check
++ * @netdev: network interface device structure
++ * @features: offload features usable for this packet
++ *
++ * The transmit DMA can stop for good when a TSO packet's protocol headers
++ * cross a 4 KB boundary in the buffer holding them: the descriptor is never
++ * written back, the driver reports "Detected Hardware Unit Hang", and only a
++ * reset brings the queue back. Seen on I219-LM/-V (PCH) with forwarded
++ * guest traffic, which arrives as linear GSO skbs that can start anywhere in a
++ * page. Let the stack segment those few packets in software instead.
++ *
++ * Returns: the features to use for @skb.
++ */
++static netdev_features_t e1000_features_check(struct sk_buff *skb,
++					      struct net_device *netdev,
++					      netdev_features_t features)
++{
++	if (skb_is_gso(skb) &&
++	    (skb_shinfo(skb)->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6)) &&
++	    (offset_in_page(skb->data) & (SZ_4K - 1)) +
++	    skb_tcp_all_headers(skb) > SZ_4K)
++		features &= ~NETIF_F_GSO_MASK;
++
++	return features;
++}
++
+ static const struct net_device_ops e1000e_netdev_ops = {
+ 	.ndo_open		= e1000e_open,
+ 	.ndo_stop		= e1000e_close,
+@@ -7378,7 +7407,7 @@ static const struct net_device_ops e1000e_netdev_ops = {
+ #endif
+ 	.ndo_set_features	= e1000_set_features,
+ 	.ndo_fix_features	= e1000_fix_features,
+-	.ndo_features_check	= passthru_features_check,
++	.ndo_features_check	= e1000_features_check,
+ 	.ndo_hwtstamp_get	= e1000e_hwtstamp_get,
+ 	.ndo_hwtstamp_set	= e1000e_hwtstamp_set,
+ };
+-- 
+2.56.0
+

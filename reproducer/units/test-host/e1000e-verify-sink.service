@@ -1,0 +1,9 @@
+[Unit]
+Description=e1000e reproducer: verifying sink (temporary)
+After=network-online.target
+[Service]
+ExecStart=/usr/local/sbin/e1000e-verify.py sink
+Restart=always
+RestartSec=5s
+[Install]
+WantedBy=multi-user.target

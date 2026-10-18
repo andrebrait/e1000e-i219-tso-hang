@@ -1,0 +1,9 @@
+[Unit]
+Description=e1000e reproducer: verified host TSO load, MSS 536, 8 streams to 10.0.255.35 (temporary)
+After=network-online.target
+[Service]
+ExecStart=/usr/local/sbin/e1000e-verify.py load 10.0.255.35 536 8
+Restart=always
+RestartSec=5s
+[Install]
+WantedBy=multi-user.target

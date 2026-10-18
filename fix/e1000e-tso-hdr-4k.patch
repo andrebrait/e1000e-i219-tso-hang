@@ -1,0 +1,65 @@
+--- ../src/netdev.c	2026-10-18 10:22:16.796936610 +0200
++++ netdev.c	2026-10-18 12:55:01.317343326 +0200
+@@ -11,6 +11,7 @@
+ #include <linux/pagemap.h>
+ #include <linux/delay.h>
+ #include <linux/netdevice.h>
++#include <linux/sizes.h>
+ #include <linux/interrupt.h>
+ #include <linux/tcp.h>
+ #include <linux/ipv6.h>
+@@ -5886,6 +5887,13 @@
+ 	first = tx_ring->next_to_use;
+ 
+ 	tso = e1000_tso(tx_ring, skb, protocol);
++	if (skb_is_gso(skb))
++		trace_printk("e1000e-tso idx=%u len=%u headlen=%u frags=%u hdr=%u mss=%u segs=%u pgoff=%lu hdr_cross=%d head_cross=%d\n",
++			     first, skb->len, skb_headlen(skb), skb_shinfo(skb)->nr_frags,
++			     skb_tcp_all_headers(skb), skb_shinfo(skb)->gso_size, skb_shinfo(skb)->gso_segs,
++			     offset_in_page(skb->data),
++			     (int)(offset_in_page(skb->data) + skb_tcp_all_headers(skb) > PAGE_SIZE),
++			     (int)(offset_in_page(skb->data) + skb_headlen(skb) > PAGE_SIZE));
+ 	if (tso < 0) {
+ 		dev_kfree_skb_any(skb);
+ 		return NETDEV_TX_OK;
+@@ -7331,6 +7339,31 @@
+ 	return 1;
+ }
+ 
++/**
++ * e1000_features_check - keep TSO packets with 4 KB-crossing headers away from the NIC
++ * @skb: packet about to be transmitted
++ * @netdev: network interface device structure
++ * @features: offload features usable for this packet
++ *
++ * The transmit engine can stop for good on a TSO packet whose protocol headers
++ * cross a 4 KB boundary in the linear buffer ("Detected Hardware Unit Hang").
++ * Such packets come from forwarded guest traffic (small linear GSO skbs); the
++ * stack segments the few affected ones in software.
++ */
++static netdev_features_t e1000_features_check(struct sk_buff *skb,
++					      struct net_device *netdev,
++					      netdev_features_t features)
++{
++	if (skb_is_gso(skb) &&
++	    (offset_in_page(skb->data) & (SZ_4K - 1)) + skb_tcp_all_headers(skb) > SZ_4K) {
++		trace_printk("e1000e-tso-diverted len=%u headlen=%u hdr=%u pgoff=%lu\n",
++			     skb->len, skb_headlen(skb), skb_tcp_all_headers(skb),
++			     offset_in_page(skb->data));
++		features &= ~NETIF_F_GSO_MASK;
++	}
++	return features;
++}
++
+ static const struct net_device_ops e1000e_netdev_ops = {
+ 	.ndo_open		= e1000e_open,
+ 	.ndo_stop		= e1000e_close,
+@@ -7350,7 +7383,7 @@
+ #endif
+ 	.ndo_set_features	= e1000_set_features,
+ 	.ndo_fix_features	= e1000_fix_features,
+-	.ndo_features_check	= passthru_features_check,
++	.ndo_features_check	= e1000_features_check,
+ 	.ndo_hwtstamp_get	= e1000e_hwtstamp_get,
+ 	.ndo_hwtstamp_set	= e1000e_hwtstamp_set,
+ };

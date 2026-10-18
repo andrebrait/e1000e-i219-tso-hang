@@ -1,0 +1,8 @@
+[Unit]
+Description=e1000e hang test: sparse mixed traffic (sink, temporary, not enabled)
+After=network-online.target
+[Service]
+ExecStart=/usr/local/sbin/e1000e-sparse.py sink
+Restart=always
+RestartSec=5s
+RuntimeMaxSec=7d

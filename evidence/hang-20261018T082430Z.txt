@@ -1,0 +1,84 @@
+# Hang capture 20261018T082430Z (proxmox-6, I219-LM 8086:15bb, e1000e on 7.0.14-24-pve, offloads at defaults)
+
+## Hang message and register dump (first occurrence)
+e1000e 0000:00:1f.6 eno1: Detected Hardware Unit Hang:
+                                   TDH                  <1>
+                                   TDT                  <44>
+                                   next_to_use          <44>
+                                   next_to_clean        <0>
+                                 buffer_info[next_to_clean]:
+                                   time_stamp           <1000b67e5>
+                                   next_to_watch        <1>
+                                   jiffies              <1000b6cc0>
+                                   next_to_watch.status <0>
+                                 MAC Status             <80083>
+                                 PHY Status             <796d>
+                                 PHY 1000BASE-T Status  <3800>
+                                 PHY Extended Status    <3000>
+                                 PCI Status             <10>
+e1000e 0000:00:1f.6: Net device Info
+e1000e: Device Name     state            trans_start
+e1000e: eno1            0000000000000003 00000001000B6CC0
+e1000e 0000:00:1f.6: Register Dump
+e1000e:  Register Name   Value
+e1000e: CTRL            581b0240
+e1000e: STATUS          00080083
+e1000e: CTRL_EXT        995a1026
+e1000e: ICR             00000000
+e1000e: RCTL            0400801a
+e1000e: RDLEN           00001000
+e1000e: RDH             00000058
+e1000e: RDT             00000050
+e1000e: RDTR            00000000
+e1000e: RXDCTL[0-1]     00010000 00010000
+e1000e: ERT             00000000
+e1000e: RDBAL           fffea000
+e1000e: RDBAH           00000000
+e1000e: RDFH            0000021c
+e1000e: RDFT            00000216
+e1000e: RDFHS           0000021a
+e1000e: RDFTS           00000216
+e1000e: RDFPC           00000035
+e1000e: TCTL            3103f0fa
+e1000e: TDBAL           fffed000
+e1000e: TDBAH           00000000
+e1000e: TDLEN           00001000
+e1000e: TDH             00000001
+e1000e: TDT             00000044
+e1000e: TIDV            00000008
+e1000e: TXDCTL[0-1]     0141001f 0141001f
+e1000e: TADV            00000020
+e1000e: TARC[0-1]       0d800403 45000403
+e1000e: TDFH            00000d0a
+e1000e: TDFT            00000d0a
+e1000e: TDFHS           00000d0a
+e1000e: TDFTS           00000d0a
+e1000e: TDFPC           00000000
+e1000e 0000:00:1f.6: Tx Ring Summary
+e1000e: Queue [NTU] [NTC] [bi(ntc)->dma  ] leng ntw timestamp
+e1000e:      0    44     0 0000000000000000 17A0   1 00000001000B67E5
+e1000e 0000:00:1f.6: Tx Ring Dump
+e1000e: Tl[desc]     [address 63:0  ] [SpeCssSCmCsLen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Legacy format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Tc[0x000]    000032220021180E 05A84200270005AE 0000000000000000 17A0    1 00000001000B67E5 0000000000000000 NTC
+
+## TX descriptor ring around next_to_clean (NETIF_MSG_TX_DONE dump)
+e1000e: Tl[desc]     [address 63:0  ] [SpeCssSCmCsLen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Legacy format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Tc[0x000]    000032220021180E 05A84200270005AE 0000000000000000 17A0    1 00000001000B67E5 0000000000000000 NTC
+e1000e: Td[0x001]    00000000FFCCAFC0 00000300AF1005F0 00000000FFCCAFC0 05F0    1 00000001000B67E5 00000000c3b8ada9
+e1000e: Tc[0x002]    0000322200000000 0000000021000000 0000000000000000 0B10    3 00000001000B67E5 0000000000000000
+e1000e: Td[0x003]    00000000FFE136FE 00000200AB100042 00000000FFE136FE 0042    3 00000001000B67E5 00000000213013fe
+e1000e: Tc[0x004]    0000322200000000 0000000021000000 0000000000000000 0042    5 00000001000B67E5 0000000000000000
+e1000e: Td[0x005]    00000000FED3EA3E 00000200AB100042 00000000FED3EA3E 0042    5 00000001000B67E5 00000000d8d0641a
+e1000e: Tc[0x006]    0000322200000000 0000000021000000 0000000000000000 0042    7 00000001000B67E5 0000000000000000
+e1000e: Td[0x007]    00000000FF0AA0FE 00000200AB100042 00000000FF0AA0FE 0042    7 00000001000B67E5 000000002d778c36
+e1000e: Tc[0x008]    0000322200000000 0000000021000000 0000000000000000 0042    9 00000001000B67E5 0000000000000000
+e1000e: Td[0x009]    00000000FFC3BFBE 00000200AB100042 00000000FFC3BFBE 0042    9 00000001000B67E5 00000000a76f126e
+e1000e: Tc[0x00A]    000032220021180E 020C420027008718 0000000000000000 0042   12 00000001000B67E5 0000000000000000
+e1000e: Td[0x00B]    00000000FF09CF3E 0000030026100046 00000000FF09CF3E 0046    B 00000001000B67E5 0000000000000000
+e1000e: Td[0x00C]    00000000FE8C0960 00000300261017A0 00000000FE8C0960 17A0    C 00000001000B67E5 0000000000000000

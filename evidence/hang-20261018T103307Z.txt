@@ -1,0 +1,129 @@
+# Hang capture 20261018T103307Z (proxmox-6, I219-LM 8086:15bb, e1000e on 7.0.14-24-pve, offloads at defaults)
+
+## Hang message and register dump (first occurrence)
+e1000e 0000:00:1f.6 eno1: Detected Hardware Unit Hang:
+                                   TDH                  <75>
+                                   TDT                  <c1>
+                                   next_to_use          <c1>
+                                   next_to_clean        <74>
+                                 buffer_info[next_to_clean]:
+                                   time_stamp           <10016f66f>
+                                   next_to_watch        <75>
+                                   jiffies              <100170180>
+                                   next_to_watch.status <0>
+                                 MAC Status             <80083>
+                                 PHY Status             <796d>
+                                 PHY 1000BASE-T Status  <3800>
+                                 PHY Extended Status    <3000>
+                                 PCI Status             <10>
+e1000e 0000:00:1f.6: Net device Info
+e1000e: Device Name     state            trans_start
+e1000e: eno1            0000000000000003 0000000100170180
+e1000e 0000:00:1f.6: Register Dump
+e1000e:  Register Name   Value
+e1000e: CTRL            581b0240
+e1000e: STATUS          00080083
+e1000e: CTRL_EXT        995a1026
+e1000e: ICR             00000000
+e1000e: RCTL            0400801a
+e1000e: RDLEN           00001000
+e1000e: RDH             00000068
+e1000e: RDT             00000060
+e1000e: RDTR            00000000
+e1000e: RXDCTL[0-1]     00010000 00010000
+e1000e: ERT             00000000
+e1000e: RDBAL           fffea000
+e1000e: RDBAH           00000000
+e1000e: RDFH            00000a70
+e1000e: RDFT            00000a6e
+e1000e: RDFHS           00000a6e
+e1000e: RDFTS           00000a6e
+e1000e: RDFPC           00000030
+e1000e: TCTL            3103f0fa
+e1000e: TDBAL           fffed000
+e1000e: TDBAH           00000000
+e1000e: TDLEN           00001000
+e1000e: TDH             00000075
+e1000e: TDT             000000c1
+e1000e: TIDV            00000008
+e1000e: TXDCTL[0-1]     0141001f 0141001f
+e1000e: TADV            00000020
+e1000e: TARC[0-1]       0d800403 45000403
+e1000e: TDFH            00000e3c
+e1000e: TDFT            00000e3c
+e1000e: TDFHS           00000e3c
+e1000e: TDFTS           00000e3c
+e1000e: TDFPC           00000000
+e1000e 0000:00:1f.6: Tx Ring Summary
+e1000e: Queue [NTU] [NTC] [bi(ntc)->dma  ] leng ntw timestamp
+e1000e:      0    C1    74 0000000000000000 17A0  75 000000010016F66F
+e1000e 0000:00:1f.6: Tx Ring Dump
+e1000e: Tl[desc]     [address 63:0  ] [SpeCssSCmCsLen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Legacy format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Td[0x000]    00000000FFF25EBE 0000000026100046 0000000000000000 0046    0 0000000000000000 0000000000000000
+
+## TX descriptor ring around next_to_clean (NETIF_MSG_TX_DONE dump)
+e1000e: Tl[desc]     [address 63:0  ] [SpeCssSCmCsLen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Legacy format
+e1000e: Tc[desc]     [Ce CoCsIpceCoS] [MssHlRSCm0Plen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Context format
+e1000e: Td[desc]     [address 63:0  ] [VlaPoRSCm1Dlen] [bi->dma       ] leng  ntw timestamp        bi->skb <-- Ext Data format
+e1000e: Tc[0x072]    0000322200000000 0000000021000000 0000000000000000 17A0   73 0000000000000000 0000000000000000
+e1000e: Td[0x073]    00000000FFF9E9BE 00000000AB100042 0000000000000000 0042   73 0000000000000000 0000000000000000
+e1000e: Tc[0x074]    000032220021180E 05A8420027000B50 0000000000000000 17A0   75 000000010016F66F 0000000000000000 NTC
+e1000e: Td[0x075]    00000000FF88AFC0 00000300AF100B92 00000000FF88AFC0 0B92   75 000000010016F66F 0000000089b3470a
+e1000e: Tc[0x076]    000032220021180E 05A84200270010F8 0000000000000000 17A0   78 000000010016F66F 0000000000000000
+e1000e: Td[0x077]    00000000FFB39300 0000030026100046 00000000FFB39300 0046   77 000000010016F66F 0000000000000000
+e1000e: Td[0x078]    00000000FEF86004 00000300AF1010F4 00000000FEF86004 10F4   78 000000010016F66F 0000000005c02d5d
+e1000e: Tc[0x079]    0000322200000000 0000000021000000 0000000000000000 0042   7A 000000010016F66F 0000000000000000
+e1000e: Td[0x07A]    00000000FFA2D800 00000200AB1005EA 00000000FFA2D800 05EA   7A 000000010016F66F 00000000d783a1d8
+e1000e: Tc[0x07B]    000032220021180E 05A84200270016A0 0000000000000000 17A0   7D 000000010016F66F 0000000000000000
+e1000e: Td[0x07C]    00000000FE8B6400 0000030026100046 00000000FE8B6400 0046   7C 000000010016F66F 0000000000000000
+e1000e: Td[0x07D]    00000000FF73E004 00000300AF10169C 00000000FF73E004 169C   7D 000000010016F66F 0000000036183c0f
+e1000e: Tc[0x07E]    000032220021180E 05A84200270016A0 0000000000000000 12D8   80 000000010016F66F 0000000000000000
+e1000e: Td[0x07F]    00000000FFEC3140 0000030026100046 00000000FFEC3140 0046   7F 000000010016F66F 0000000000000000
+e1000e: Td[0x080]    00000000FFBFC004 00000300AF10169C 00000000FFBFC004 169C   80 000000010016F66F 00000000db93eb0b
+
+## Instrumented driver: TSO packet layout log (trace_printk in e1000_xmit_frame)
+TSO packets logged: 118784; linear (frags=0): 8552; headers crossing 4 KB: 37; linear part crossing 4 KB but not the headers: 7068
+
+Stuck packet (ring index next_to_clean = 0x74 = 116):
+1805.336507: e1000e-tso idx=116 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+
+All packets with headers crossing 4 KB in the log (the last one is the stuck packet):
+1776.413395: e1000e-tso idx=96 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1778.349355: e1000e-tso idx=28 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1779.156556: e1000e-tso idx=103 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1780.224248: e1000e-tso idx=250 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1780.367137: e1000e-tso idx=245 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1780.912817: e1000e-tso idx=120 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1780.994455: e1000e-tso idx=232 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1785.188655: e1000e-tso idx=44 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1785.448669: e1000e-tso idx=49 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1787.006501: e1000e-tso idx=174 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1788.172882: e1000e-tso idx=216 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1789.148148: e1000e-tso idx=42 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1789.580133: e1000e-tso idx=145 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1790.383020: e1000e-tso idx=241 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1790.888341: e1000e-tso idx=152 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1791.046043: e1000e-tso idx=203 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1791.133966: e1000e-tso idx=88 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1792.426715: e1000e-tso idx=210 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1793.876554: e1000e-tso idx=232 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1794.530200: e1000e-tso idx=112 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1794.837707: e1000e-tso idx=157 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1797.270470: e1000e-tso idx=237 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1799.809999: e1000e-tso idx=105 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1800.224502: e1000e-tso idx=1 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1800.237668: e1000e-tso idx=23 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1800.603564: e1000e-tso idx=151 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1801.039981: e1000e-tso idx=43 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1801.591600: e1000e-tso idx=184 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1801.875055: e1000e-tso idx=138 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1802.765425: e1000e-tso idx=157 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1802.901038: e1000e-tso idx=217 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1803.153760: e1000e-tso idx=169 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1803.507800: e1000e-tso idx=150 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1803.633268: e1000e-tso idx=184 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1803.913888: e1000e-tso idx=173 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1804.191904: e1000e-tso idx=253 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+1805.336507: e1000e-tso idx=116 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1

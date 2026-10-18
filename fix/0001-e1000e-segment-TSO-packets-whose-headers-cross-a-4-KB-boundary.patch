@@ -1,4 +1,4 @@
-From c8d1ca607e32b15ea1a0a720f6877d04ca757dbc Mon Sep 17 00:00:00 2001
+From 457ae327f8525d6ce1418ad2996fafec1123e290 Mon Sep 17 00:00:00 2001
 From: Andre Brait <andrebrait@gmail.com>
 Date: Sun, 18 Oct 2026 21:01:59 +0200
 Subject: [PATCH iwl-net] e1000e: segment TSO packets whose headers cross a 4
@@ -8,46 +8,62 @@ On I219-LM (8086:15bb) and I219-V (8086:15bc), the transmit DMA can stop
 for good on a TSO packet whose protocol headers cross a 4 KB boundary in
 the buffer that holds them. The packet's data descriptor is never
 written back, e1000e logs "Detected Hardware Unit Hang" every two
-seconds, and the link stays down until the adapter is reset.
+seconds, and the link stays down until the adapter is reset. Just before
+the queue stops, the NIC also sends corrupted payload with a valid TCP
+checksum, so the receiver accepts it.
 
 The host's own TCP stack does not produce such packets: its TSO skbs
 keep the headers in a small linear head and the payload in page
 fragments. Forwarded guest traffic does: tun/vhost-net copies a VM's
 small GSO packet into a single linear buffer from a page fragment, which
-can start anywhere in a page. On hypervisor hosts bridging virtio-net
-guests onto the I219, this hung the NIC every 6 to 9 minutes under mixed
-guest and host traffic.
+can start anywhere in a page. Hypervisor hosts bridging virtio-net
+guests onto the I219 are therefore affected.
 
-At each hang, the ring dump (NETIF_MSG_HW | NETIF_MSG_TX_DONE) shows a
-TSO context descriptor followed by a single data descriptor holding
-header and payload (TSE | EOP, status 0) at TDH, a buffer starting at
-page offset 0xfc0 with 66 bytes of headers, an empty TX FIFO (TDFH ==
-TDFT), normal link, PHY and PCI status, and no IOMMU fault. Logging
-every TSO packet's layout in e1000_xmit_frame() showed that each stuck
-packet had its headers crossing a 4 KB boundary, while such packets were
-about 0.03% of TSO traffic; linear TSO packets crossing a page only
-after the headers never hung. Not every header-crossing packet hangs
-(between 1 in 3 and 1 in 37 here), which suggests a race inside the NIC.
+At each hang, the ring dump (NETIF_MSG_HW | NETIF_MSG_TX_DONE) shows, at
+TDH, a TSO context descriptor followed by a single data descriptor
+holding header and payload (TSE | EOP, status 0), with the buffer at
+page offset 0xfc0 and 66 bytes of headers. The TX FIFO is empty (TDFH ==
+TDFT), link, PHY and PCI status are normal, and there is no IOMMU fault.
+Logging every TSO packet's layout in e1000_xmit_frame() over three
+hangs:
 
-Before the queue stops, the NIC also transmits corrupted payload. With a
-generator whose receiver checks every byte, each of 10 hangs came with
-whole TCP segments carrying the stream data from 128 bytes earlier, with
-a valid TCP checksum, so the receiver accepted them.
+  capture  TSO packets  headers cross 4 KB  only the rest crosses  hung
+  1        118,784      37                  7,068                  37th
+  2        118,699      19                  6,765                  19th
+  3         31,520       3                  1,726                   3rd
+
+Every stuck packet was "len=2962 headlen=2962 frags=0 hdr=66 mss=1448
+pgoff=4032". About 0.03% of TSO packets have headers crossing 4 KB, and
+not every one of them hangs, which suggests a race inside the NIC.
+TSO packets whose linear part crosses 4 KB only after the headers never
+hung.
+
+The corruption was found with a traffic generator whose receiver checks
+every byte. At each of 10 hangs, whole TCP segments from the guest
+carried the stream data from exactly 128 bytes earlier.
 
 Implement ndo_features_check to clear the GSO features for TCP GSO
 packets whose headers cross a 4 KB boundary, so the stack segments those
 in software. All other packets keep TSO and checksum offload.
 
-Tested on I219-LM with upstream v7.0.14 e1000e, built with and without
-this patch, under identical verified guest and host traffic: without it,
-5 hangs (each with corrupted payload) in 64 minutes; with it, no hang and
-no corrupted byte in 4 hours (1.5 TB of TCP verified), and no change in
-throughput or packet loss.
+Tested on I219-LM with upstream v7.0.14 e1000e built from one source
+tree with and without this patch, under the same verified guest and
+host traffic and an otherwise identical setup:
+
+                 duration  hangs  corrupted  TCP verified  throughput
+  without patch  64 min    5      6 chunks   0.24 TB       794-813 Mb/s
+  with patch     252 min   0      0          1.51 TB       795-813 Mb/s
+
+UDP loss was 0.021% without and 0.022% with the patch (queue drops on
+the saturated link). Over 2 minutes, 64 of 8,612,900 packets were
+diverted to software segmentation.
 
 The problem was diagnosed and this fix was written with the help of an
 AI coding assistant (Claude, by Anthropic), which designed the
 instrumentation, analysed the captures and drafted the patch and this
-message. The tests ran on my hardware; see below the cut for details.
+message. The tests ran on my hardware. The notes below the cut give the
+details; the reproducer, the captures and the raw data are at
+https://github.com/andrebrait/e1000e-i219-tso-hang/tree/b5ef46099b28
 
 Fixes: bc7f75fa9788 ("[E1000E]: New pci-express e1000 driver (currently for ICH9 devices only)")
 Assisted-by: LLM
@@ -65,30 +81,102 @@ Notes:
     where the patch is the only difference, and reviewed the results and
     the patch.
     
-    Testing:
-    - Hardware: I219-LM 8086:15bb rev 10 (HP ProDesk 600 G5 Mini), NVM 0.5-4,
-      1000 Mb/s full duplex, EEE and flow control on, VT-d on.
-    - Kernel 7.0.14 (Proxmox VE 9.2). Both modules were built from the same
-      v7.0.14 e1000e tree, with and without this patch; a fingerprint of the
-      rest of the setup (scripts, units, VM configuration, kernels, offloads,
-      MTU, EEE, flow control, command line) was identical for both runs.
+    Everything below, plus the full captures, the reproducer and the exact
+    systemd units, is at https://github.com/andrebrait/e1000e-i219-tso-hang/tree/b5ef46099b28
+    
+    Setup:
+    - I219-LM 8086:15bb rev 10 (HP ProDesk 600 G5 Mini), NVM 0.5-4,
+      1000 Mb/s full duplex, EEE and flow control on, VT-d on, MTU 1500.
+    - Kernel 7.0.14 (Proxmox VE 9.2). Both A/B modules were built from the
+      same v7.0.14 e1000e tree, with and without this patch; a fingerprint of
+      the rest of the setup (scripts, units, VM configuration, kernels,
+      offloads, MTU, EEE, flow control, command line) was identical.
     - Traffic: a virtio-net/vhost-net guest bridged onto the I219 sending TCP
-      bulk data and small UDP datagrams to a second host, plus 8 TCP streams
-      with MSS 536 from the host in both directions. The receiver checks
-      every byte of every TCP stream and every UDP datagram.
-    - Without the patch: 5 hangs in 64 minutes. Each came with corrupted TCP
-      payload at the moment the hang began (whole segments holding the stream
-      data from 128 bytes earlier, valid checksum). Proxmox's own e1000e
-      build behaved the same (5 hangs in 35 minutes).
-    - With the patch: 4 h 12 min, no hang, no corrupted byte (1.51 TB of TCP
-      and 720,203 UDP datagrams verified), throughput unchanged (795-813 Mb/s
-      against 794-813 Mb/s), UDP loss unchanged (0.022% against 0.021%), no
-      kernel warnings. A kretprobe on e1000_features_check() over 2 minutes
-      saw 8,612,900 calls, 64 of which returned the features without
-      NETIF_F_TSO | NETIF_F_TSO6.
-    - This patch applies to net-queue dev-queue (0344a46e40a4) and all
-      e1000e objects compile there with W=1 without warnings. It was not
-      runtime-tested on a dev-queue kernel, only on 7.0.14.
+      bulk data, small TCP writes and small UDP datagrams to a second host,
+      plus 8 TCP streams with MSS 536 from the host in both directions. The
+      receiver checks every byte of every TCP stream and UDP datagram.
+    
+    Hang message and registers (capture 2, 20261018T104202Z):
+    
+      e1000e 0000:00:1f.6 eno1: Detected Hardware Unit Hang:
+        TDH                  <6d>
+        TDT                  <a3>
+        next_to_use          <a3>
+        next_to_clean        <6c>
+        buffer_info[next_to_clean]:
+        time_stamp           <fffef4c8>
+        next_to_watch        <6d>
+        jiffies              <fffefd00>
+        next_to_watch.status <0>
+        MAC Status             <80083>
+        PHY Status             <796d>
+        PHY 1000BASE-T Status  <3800>
+        PHY Extended Status    <3000>
+        PCI Status             <10>
+      e1000e: STATUS          00080083
+      e1000e: TDH             0000006d
+      e1000e: TDT             000000a3
+      e1000e: TDFH            00000d04
+      e1000e: TDFT            00000d04
+      e1000e: TDFHS           00000d04
+      e1000e: TDFTS           00000d04
+    
+    TX ring around next_to_clean (same capture). Tc[0x06C] is the TSO
+    context (MSS 0x5A8, HDRLEN 0x42, PAYLEN 0xB50); Td[0x06D] is the single
+    data descriptor holding header and payload, buffer at page offset 0xFC0,
+    length 0xB92, DCMD 0xAF (TSE|EOP|RS|IFCS|IDE), never written back:
+    
+      e1000e: Td[0x06A]    00000000FFD7EBC0 0000000026100046 0000000000000000 0046   6A 0000000000000000 0000000000000000
+      e1000e: Td[0x06B]    00000000FEC50004 00000000AF101050 0000000000000000 10F4   6B 0000000000000000 0000000000000000
+      e1000e: Tc[0x06C]    000032220021180E 05A8420027000B50 0000000000000000 17A0   6D 00000000FFFEF4C8 0000000000000000 NTC
+      e1000e: Td[0x06D]    00000000FF664FC0 00000300AF100B92 00000000FF664FC0 0B92   6D 00000000FFFEF4C8 000000000325885a
+      e1000e: Tc[0x06E]    0000322200000000 0000000021000000 0000000000000000 17A0   6F 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x06F]    00000000FF7C3D7E 00000200AB100042 00000000FF7C3D7E 0042   6F 00000000FFFEF4C8 0000000010c11e46
+      e1000e: Tc[0x070]    0000322200000000 0000000021000000 0000000000000000 0518   71 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x071]    00000000FFE3E1FE 00000200AB100042 00000000FFE3E1FE 0042   71 00000000FFFEF4C8 000000006d7e7051
+      e1000e: Tc[0x072]    000032220021180E 020C420027006E88 0000000000000000 17A0   79 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x073]    00000000FF2EEC7E 0000030026100046 00000000FF2EEC7E 0046   73 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x074]    00000000FF6308F4 00000300261017A0 00000000FF6308F4 17A0   74 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x075]    00000000FF30A094 0000030026100F6C 00000000FF30A094 0F6C   75 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x076]    00000000FF8CE000 00000300261017A0 00000000FF8CE000 17A0   76 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x077]    00000000FF67E7A0 00000300261017A0 00000000FF67E7A0 17A0   77 00000000FFFEF4C8 0000000000000000
+      e1000e: Td[0x078]    00000000FEDFCF40 00000300261017A0 00000000FEDFCF40 17A0   78 00000000FFFEF4C8 0000000000000000
+    
+    TSO layout log from the instrumented driver, per capture (the stuck
+    packet is the one at next_to_clean):
+    
+      20261018T103307: TSO packets logged: 118784; linear (frags=0): 8552; headers crossing 4 KB: 37; linear part crossing 4 KB but not the headers: 7068
+        stuck: 1805.336507: e1000e-tso idx=116 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+      20261018T104202: TSO packets logged: 118699; linear (frags=0): 7747; headers crossing 4 KB: 19; linear part crossing 4 KB but not the headers: 6765
+        stuck: 232.374032: e1000e-tso idx=108 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+      20261018T104845: TSO packets logged: 31520; linear (frags=0): 770; headers crossing 4 KB: 3; linear part crossing 4 KB but not the headers: 1726
+        stuck: 104.942690: e1000e-tso idx=126 len=2962 headlen=2962 frags=0 hdr=66 mss=1448 segs=2 pgoff=4032 hdr_cross=1 head_cross=1
+    
+    Payload mismatches logged by the receiver (all hangs with the verifying
+    reproducer: Proxmox's e1000e build 12:30-13:04, upstream v7.0.14
+    unpatched 13:13-14:17; none with the patch, 14:26-18:38 UTC). In every
+    case the received bytes equal the stream data 128 bytes before the
+    offset:
+    
+      2026-10-18T12:30:32Z MISMATCH tcp from 10.0.255.90 at stream offset 156885518: got b4552cee6086c51f73e278c0638b663a expected c4fceede1125b36848bc4cd4a9e1bdc3 (chunk 2896 bytes)
+      2026-10-18T12:40:16Z MISMATCH tcp from 10.0.255.90 at stream offset 2154601342: got b537fe2d12d226e90f9ed5681801b845 expected a8a25ec284acc5b04e347043ddb900c5 (chunk 5792 bytes)
+      2026-10-18T12:47:36Z MISMATCH tcp from 10.0.255.90 at stream offset 489107398: got 8b141d678d46c443f73b04b83ecab696 expected d41ba3ff49478e0f3d91ffabf1deffc1 (chunk 2896 bytes)
+      2026-10-18T12:55:21Z MISMATCH tcp from 10.0.255.90 at stream offset 841581822: got 0881a33e1918e81fa4a446d99017b200 expected d69c66fa5e01fa17340ce7f9c7c94308 (chunk 2896 bytes)
+      2026-10-18T13:02:07Z MISMATCH tcp from 10.0.255.90 at stream offset 40350478: got 4cddf132550c31492e279451675867ea expected f0022aabe41439bfd23c02219ee16c68 (chunk 2896 bytes)
+      2026-10-18T13:40:16Z MISMATCH tcp from 10.0.255.90 at stream offset 1134953671: got 5b9d0621664fb8a960911cb4efe028e1 expected 5f99cc2ab5ea857119acdce4a5b3ea19 (chunk 1452 bytes)
+      2026-10-18T13:48:47Z MISMATCH tcp from 10.0.255.90 at stream offset 1345086806: got 939f9a54ec81648fbcadb6506c5b297e expected 531bc7fc65da6b23eaafbe081ba95ebc (chunk 2896 bytes)
+      2026-10-18T13:55:52Z MISMATCH tcp from 10.0.255.90 at stream offset 229134926: got 6e8252624a43baaf23f28b636cf5fa83 expected 0aac653e1175623ccf2a19f3f93ddb04 (chunk 2896 bytes)
+      2026-10-18T14:04:52Z MISMATCH tcp from 10.0.255.90 at stream offset 1645261550: got dd44d386aefd565c7b7af11809cabf75 expected d77584104f8c094ba75858204db81803 (chunk 1448 bytes)
+      2026-10-18T14:04:52Z MISMATCH tcp from 10.0.255.90 at stream offset 1645262488: got 0afa21dd34f3be0308b2576d4c64ee95 expected 3e2f976035c0421d538814f2c8beaca1 (chunk 1448 bytes)
+      2026-10-18T14:15:27Z MISMATCH tcp from 10.0.255.90 at stream offset 2818840934: got 737cc43f17815f47cc805435de979c51 expected 64fc2cd280cf2af40a89c222cc41bbd0 (chunk 2896 bytes)
+    
+    A kretprobe on e1000_features_check() with the patch, 2 minutes:
+    8,612,900 calls, 64 returning the features without NETIF_F_TSO |
+    NETIF_F_TSO6 (the only GSO features enabled on the interface).
+    
+    This patch applies to net-queue dev-queue (0344a46e40a4) and all e1000e
+    objects compile there with W=1 without warnings. It was not
+    runtime-tested on a dev-queue kernel, only on 7.0.14.
     
     Not done or not known:
     - The fix was only tested on I219-LM. An I219-V (8086:15bc rev 10,
@@ -101,9 +189,6 @@ Notes:
     - What goes wrong inside the NIC is unknown. Is this a known I219
       erratum, and which MACs does it affect? If Intel documents a
       narrower condition, the check can be tightened.
-    
-    The hang captures, per-packet statistics and the reproducer are
-    available on request.
 
  drivers/net/ethernet/intel/e1000e/netdev.c | 31 +++++++++++++++++++++-
  1 file changed, 30 insertions(+), 1 deletion(-)

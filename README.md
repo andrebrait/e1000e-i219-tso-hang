@@ -1,8 +1,8 @@
 # Intel I219 (e1000e) transmit hang on TSO packets whose headers cross a 4 KB boundary
 
 Reproducer, debugging tools and raw evidence for the upstream Linux patch
-"e1000e: segment TSO packets whose headers cross a 4 KB boundary" (`[PATCH iwl-net]`, sent to
-intel-wired-lan and netdev).
+"e1000e: segment TSO packets whose headers cross a 4 KB boundary" (`[PATCH iwl-net]`, posted to
+intel-wired-lan and netdev on 2026-10-18: https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/).
 
 On I219-LM (8086:15bb) and I219-V (8086:15bc), the transmit DMA stops for good on a TSO packet
 whose protocol headers cross a 4 KB boundary in the buffer that holds them. e1000e then logs

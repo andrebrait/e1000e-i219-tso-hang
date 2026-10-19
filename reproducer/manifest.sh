@@ -13,8 +13,10 @@ echo "cmdline $(cat /proc/cmdline)"
 h /usr/local/sbin/e1000e-verify.py /usr/local/sbin/e1000e-debug-watch.sh \
   /etc/systemd/system/e1000e-verify-sink.service /etc/systemd/system/e1000e-verify-load.service \
   /etc/systemd/system/e1000e-debug-watch.service /root/e1000e-fix/swap-module.sh \
-  /etc/initramfs-tools/hooks/zz-drop-e1000e /etc/network/interfaces
-echo "enabled: $(systemctl is-enabled e1000e-verify-sink e1000e-verify-load e1000e-debug-watch disable-nic-offload-e1000e e1000e-hang-watch e1000e-repro e1000e-sparse-send 2>&1 | tr '\n' ' ')"
+  /etc/initramfs-tools/hooks/zz-drop-e1000e /etc/network/interfaces \
+  /etc/systemd/system/e1000e-vlan-test.service
+echo "enabled: $(systemctl is-enabled e1000e-verify-sink e1000e-verify-load e1000e-debug-watch e1000e-vlan-test disable-nic-offload-e1000e e1000e-hang-watch e1000e-repro e1000e-sparse-send 2>&1 | tr '\n' ' ')"
+echo "tc egress: $(tc filter show dev eno1 egress 2>/dev/null | grep -E 'dst_mac|vlan' | tr -s ' \t\n' ' ')"
 echo "vm900: $(qm config 900 | grep -vE '^(digest|vmgenid)' | sha256sum | cut -c1-16) onboot=$(qm config 900 | sed -n 's/^onboot: //p')"
 echo "mtu eno1=$(cat /sys/class/net/eno1/mtu) vmbr0=$(cat /sys/class/net/vmbr0/mtu)"
 echo "eee: $(ethtool --show-eee eno1 2>/dev/null | sed -n 's/.*EEE status: //p')"

@@ -30,6 +30,23 @@ Every corrupted chunk ([`evidence/ab/mismatches.txt`](evidence/ab/mismatches.txt
 covers a run with Proxmox's own e1000e build) held the stream data from exactly 128 bytes earlier
 and arrived at the moment a hang began.
 
+### v2 (2026-10-19)
+
+Review of v1 showed that the stack can move the headers after `ndo_features_check` (software VLAN
+insertion, `skb_cow_head()`), so v2 checks in `e1000_xmit_frame()`, on the final layout, and
+segments failing packets in the driver ([`fix/e1000e-v2.py`](fix/e1000e-v2.py)). The VLAN setup
+([`e1000e-vlan-test.service`](reproducer/units/test-host/e1000e-vlan-test.service)) forces software
+tag insertion; manifests are in [`evidence/vlan/`](evidence/vlan).
+
+| | Setup | Duration | Hangs | Corrupted | TCP verified | Crossing TSO packets reaching the NIC |
+|---|---|---|---|---|---|---|
+| v1 | VLAN | 72 min | 0 | 0 | 0.42 TB | about 1,700 (4 bytes before the boundary, 66 after) |
+| v2 | VLAN | 47 min | 0 | 0 | 0.27 TB | 0 |
+| v2 | no VLAN | 60 min | 0 | 0 | 0.35 TB | 0 |
+
+The NIC tolerated the 4/66 split that v1 let through; the hanging packets all had 64 bytes before
+the boundary and 2 after. See "VLAN tests" in [`REPORT.md`](REPORT.md).
+
 ## Contents
 
 | Path | What it is |
@@ -40,8 +57,9 @@ and arrived at the moment a hang began.
 | [`reproducer/units/`](reproducer/units) | The exact systemd units used on the test host, the peer and the guest |
 | [`reproducer/manifest.sh`](reproducer/manifest.sh) | Fingerprint of the setup apart from the driver, so A/B runs can be compared |
 | [`capture/e1000e-debug-watch.sh`](capture/e1000e-debug-watch.sh) | Hang watcher: driver ring dumps, transmit trace, NIC and PCIe state at each hang |
-| [`capture/e1000e-instrument.py`](capture/e1000e-instrument.py) | Adds a `trace_printk()` of each TSO packet's layout to `e1000_xmit_frame()` (no behaviour change) |
-| [`fix/`](fix) | The patch, plus the instrumented variant used in the first soak |
+| [`capture/e1000e-instrument.py`](capture/e1000e-instrument.py) | Adds a `trace_printk()` of each TSO packet's layout to `e1000_xmit_frame()`, and of each v2 diversion (no behaviour change) |
+| [`capture/e1000e-tap.py`](capture/e1000e-tap.py) | Packet tap that keeps transmitted skbs cloned, so `e1000_tso()` copies their headers |
+| [`fix/`](fix) | The v1 patch as posted, the v2 transform, and the instrumented variant used in the first soak |
 | [`earlier-reproducer/`](earlier-reproducer) | The first reproducer (`iperf3` and a sparse generator, data not checked) |
 
 `reproducer/e1000e-verify.py` and the unit files are byte-identical to what ran in the A/B test;

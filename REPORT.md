@@ -186,35 +186,36 @@ happen.
 
 ## The fix
 
-```c
-static netdev_features_t e1000_features_check(struct sk_buff *skb,
-					      struct net_device *netdev,
-					      netdev_features_t features)
-{
-	if (skb_is_gso(skb) &&
-	    (skb_shinfo(skb)->gso_type & (SKB_GSO_TCPV4 | SKB_GSO_TCPV6)) &&
-	    (offset_in_page(skb->data) & (SZ_4K - 1)) +
-	    skb_tcp_all_headers(skb) > SZ_4K)
-		features &= ~NETIF_F_GSO_MASK;
+v2 (`fix/e1000e-v2.py`, applied to `drivers/net/ethernet/intel/e1000e/netdev.c`) checks the header
+placement in `e1000_xmit_frame()`, where `skb->data` is final:
 
-	return features;
+```c
+static bool e1000_tso_hdr_crosses_4k(const struct sk_buff *skb)
+{
+	return (offset_in_page(skb->data) & (SZ_4K - 1)) +
+	       skb_tcp_all_headers(skb) > SZ_4K;
 }
 ```
 
-replacing `passthru_features_check` in `e1000e_netdev_ops`.
+called for GSO packets after the 82571/2/3 payload pull and after `skb_cow_head(skb, 0)`. Packets
+that fail go to `e1000_xmit_gso_sw()`, which segments them with `skb_gso_segment()` (features
+without `NETIF_F_GSO_MASK`), reserves ring space for every segment (returning `NETDEV_TX_BUSY` if
+there is none yet, dropping the packet if the segments could never fit the ring), and sends each
+segment through `e1000_xmit_frame()` as an ordinary packet with checksum offload. The descriptor
+count of `e1000_xmit_frame()` moved into `e1000_tx_desc_count()` so both paths use one formula.
 
-- `ndo_features_check` runs for every packet before transmission; clearing the GSO bits makes
-  `validate_xmit_skb()` segment that packet in software (`skb_gso_segment()`), so the NIC receives
-  ordinary MSS-sized packets with checksum offload instead of one TSO packet.
 - The check uses the 4 KB offset of `skb->data`, which is what the NIC fetches: the DMA address of
   the linear part keeps the offset within a 4 KB page with or without an IOMMU (IOMMU granule 4 KB
   on x86), and masking with `SZ_4K - 1` keeps the check right where `PAGE_SIZE` is larger than
   4 KB.
-- Only TCP GSO types are considered, so `skb_tcp_all_headers()` is valid; e1000e advertises TSO
-  for TCP over IPv4 and IPv6 only.
-- Cost: one branch per packet, plus software segmentation of the affected packets. In the
-  reproduction, about one packet per second was diverted out of roughly 3,000 TSO packets per
-  second.
+- Cost: one branch per TSO packet, plus software segmentation of the affected packets (in the
+  reproduction about one packet per second out of roughly 3,000 TSO packets per second).
+
+v1 (posted 2026-10-18) did the same check in `ndo_features_check`, which runs in
+`validate_xmit_skb()` before the skb's final layout is known. Gabriel pointed out in review that
+`validate_xmit_vlan()` runs afterwards: when the NIC does not insert the VLAN tag, the stack pushes
+it into the packet and moves `skb->data` back by 4 bytes. `skb_cow_head()` in `e1000_tso()` and the
+82571/2/3 payload pull can also move or copy the headers later. See "VLAN tests" below.
 
 Not chosen:
 - Disabling TSO for the whole interface (today's common workaround): costs throughput and CPU
@@ -223,7 +224,41 @@ Not chosen:
   packet; software segmentation already exists and is well tested.
 - Reallocating the skb head: the new offset is not controllable without extra copying.
 
-## Results
+## VLAN tests (review of v1)
+
+Software VLAN insertion was forced on proxmox-6 with `e1000e-vlan-test.service`: rx/tx VLAN offload
+off (e1000e ties the two together), and a `tc` egress filter that pushes VLAN 0 onto every IPv4
+frame to the peer. tc runs before `validate_xmit_skb()`, so the stack inserts the tag after
+`ndo_features_check`, as it does for any VLAN when the NIC does not. The switch strips VLAN 0, so
+the peer receives untagged frames and the rest of the reproduction is unchanged. All other settings
+were identical between the v1 and v2 runs (`evidence/vlan/manifest-v1.txt`, `manifest-v2.txt`).
+
+| Driver (2026-10-19 UTC) | Setup | Window | Hangs | Corrupted | TSO packets reaching the NIC with headers crossing 4 KB |
+|---|---|---|---|---|---|
+| v1 + instrumentation (`A1981ADDE3F02CFA4BFBD2E`) | VLAN | 14:19-15:31 | 0 | 0 (0.42 TB) | about 24 a minute, all `pgoff=4092 hdr=70` |
+| v1 + instrumentation | VLAN + packet tap | 1-minute sample | - | - | 0 |
+| v2 + instrumentation (`0B84CD06AE663161F792A81`) | VLAN | 15:36:47-16:23:45 | 0 | 0 (0.27 TB) | 0; diverted at `pgoff=4092` and `pgoff=4028` |
+| v2 + instrumentation | no VLAN | 16:26:17-17:26:42 | 0 | 0 (0.35 TB) | 0 |
+
+- **v1 misses the VLAN case.** A guest packet whose data started at page offset 0 passed v1's check;
+  the stack then pushed the tag in front of it, so the NIC read a 70-byte header at 4092-4161.
+- **The NIC tolerated that split.** About 1,700 such packets (4 header bytes before the boundary,
+  66 after) in 72 minutes caused no hang and no corruption. The hanging packets had 64 bytes
+  before and 2 after; see "Open questions for Intel".
+- **Copied headers did not cross here.** A cloning packet tap (`e1000e-tap.py`) makes
+  `e1000_tso()` copy every TSO header (`skb_cow_head()`); host headers then land in
+  `skbuff_small_head` objects (704 bytes, 23 per 16 KB slab) that ended at most exactly at a 4 KB
+  boundary, and guest packets in page-aligned kmalloc-4k buffers. This depends on the allocator
+  and its object sizes, so v2 still checks after the copy.
+- **v2 diverts every crossing in the final layout,** including the original case shifted by the
+  tag (4028), and no crossing TSO packet reached the NIC. Mean throughput at the peer: v1 + VLAN
+  774 Mb/s, v2 + VLAN 791 Mb/s, v2 800 Mb/s (unpatched baseline 794-813 Mb/s).
+- **No drops from v2.** `tx_dropped` rose by 8 and later by 5, both times while the VLAN unit
+  removed its qdisc and reset the NIC; a kprobe on `netdev_core_stats_inc()` showed every one in
+  `dev_qdisc_enqueue()`. During 85 minutes of steady traffic with the probe armed, `tx_dropped`
+  did not change, so v2's drop path (segments that can never fit the ring) never ran.
+
+## Results (v1, 2026-10-18)
 
 - **Diversion verified** with the instrumented fix module: in the first minute of reproduction,
   16 header-crossing TSO packets were segmented in software, 0 reached the NIC as TSO, and
@@ -257,6 +292,8 @@ All on 2026-10-18 (UTC), proxmox-6 (I219-LM), kernel 7.0.14-24-pve, offloads at 
 | upstream v7.0.14, unpatched (`13BCF787596E0D3E967EF44`) | verifying reproducer | 13:13:34-14:17 | 5 (onsets 13:40, 13:48, 13:55, 14:04, 14:15) | 5 events, 6 chunks, all -128 bytes |
 | upstream v7.0.14 + fix (`E7777359E1D6B11377D070E`, the submitted patch) | verifying reproducer | 14:26:32-18:38:27 | 0 | 0 |
 
+2026-10-19: v1 and v2 runs with and without software VLAN insertion; see "VLAN tests".
+
 ## Open questions for Intel
 
 - Is this a known I219 (PCH) erratum, and does it apply to other e1000e MACs (82574, 82579,
@@ -264,4 +301,6 @@ All on 2026-10-18 (UTC), proxmox-6 (I219-LM), kernel 7.0.14-24-pve, offloads at 
   cheap and the affected packets are rare.
 - Is the exact condition "headers cross a 4 KB boundary", or "the first descriptor's buffer crosses
   4 KB within the first N bytes"? The data fits the former; all stuck packets also crossed within
-  the first 64 bytes.
+  the first 64 bytes. A split of 4 bytes before the boundary and 66 after (from software VLAN
+  insertion) did not hang in about 1,700 instances; the hanging packets all had 64 bytes before and
+  2 after.

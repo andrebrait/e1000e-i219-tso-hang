@@ -1,0 +1,52 @@
+## test host proxmox-6
+kernel 7.0.14-24-pve
+cmdline BOOT_IMAGE=/vmlinuz-7.0.14-24-pve root=ZFS=/ROOT/pve-1 ro root=ZFS=rpool/ROOT/pve-1 boot=zfs quiet
+2ddd85a8f88c53ae550ace5415b94460aa91a0f57b30d30658f209d0a0e0eb2d /usr/local/sbin/e1000e-verify.py
+a859e2ee45311ec37161e31890bd4d7d4a94d2a96ce367f5d5d58538252eda6a /usr/local/sbin/e1000e-debug-watch.sh
+5842c6bd72dae2e0375e60b7c478c710c8baf63597ea12dbdf873bfa9ae3bcdd /etc/systemd/system/e1000e-verify-sink.service
+5ad5f56d5464a4987f5201eb349aaebe47249f441701264c56016904298ebe10 /etc/systemd/system/e1000e-verify-load.service
+ef787d7c0b9f37e1601e3f1069b0118660abfd7f190e95391342c17e3f25dd1b /etc/systemd/system/e1000e-debug-watch.service
+57c2c6d4f346a391d4814176f5eb797ebc137993ffbbdd0c66fb444689f5a7bb /root/e1000e-fix/swap-module.sh
+c1ec522f1503f99915e481419594b1fbc95b66938eb47c91e21f8438577e44d7 /etc/initramfs-tools/hooks/zz-drop-e1000e
+b50dfce0880a9fe7d3c1a52370e4aadba6650ac0bd16dd5c764a67806775a240 /etc/network/interfaces
+ed80951b4daeb04e09e7b05ffc9e49a50cda177470c4f65f3dfe73f34ac0889c /etc/systemd/system/e1000e-vlan-test.service
+enabled: enabled enabled enabled disabled disabled disabled not-found not-found 
+tc egress: 
+vm900: 348019b239ae2156 onboot=1
+mtu eno1=1500 vmbr0=1500
+eee: enabled - inactive
+pause: RX:on TX:on 
+offloads (after module load, defaults expected):
+Features for eno1:
+generic-receive-offload: on
+generic-segmentation-offload: on
+receive-hashing: on
+rx-all: off
+rx-checksumming: on
+rx-fcs: off
+rx-gro-list: off
+rx-udp-gro-forwarding: off
+rx-vlan-offload: on
+scatter-gather: on
+tcp-segmentation-offload: on
+	tx-checksum-ip-generic: on
+tx-checksumming: on
+tx-nocache-copy: off
+	tx-scatter-gather: on
+	tx-tcp6-segmentation: on
+	tx-tcp-mangleid-segmentation: off
+	tx-tcp-segmentation: on
+tx-vlan-offload: on
+## peer 10.0.255.34
+kernel 7.0.14-24-pve
+2ddd85a8f88c53ae550ace5415b94460aa91a0f57b30d30658f209d0a0e0eb2d /usr/local/sbin/e1000e-verify.py
+5842c6bd72dae2e0375e60b7c478c710c8baf63597ea12dbdf873bfa9ae3bcdd /etc/systemd/system/e1000e-verify-sink.service
+dbdab6df686ddbf87de1178d281266290697b4cd3f03e351fe64df52a2d2b9b8 /etc/systemd/system/e1000e-verify-load.service
+enabled: enabled enabled enabled not-found not-found 
+tso off mtu 1500
+## guest 10.0.255.90
+kernel 6.12.113+deb13-cloud-amd64
+2ddd85a8f88c53ae550ace5415b94460aa91a0f57b30d30658f209d0a0e0eb2d /usr/local/sbin/e1000e-verify.py
+3dcb9510eba7bb22122375b3a9f4d87c99a30a19b1110791ef178cc99d9aa84d /etc/systemd/system/vm-verify.service
+enabled: enabled disabled disabled 
+tso on mtu 1500

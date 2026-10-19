@@ -1,0 +1,14 @@
+[Unit]
+Description=e1000e reproducer: software 802.1Q insertion (VLAN 0) on IPv4 frames to the peer (temporary)
+BindsTo=sys-subsystem-net-devices-eno1.device
+After=sys-subsystem-net-devices-eno1.device
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/ethtool -K eno1 rxvlan off txvlan off
+ExecStart=/usr/sbin/tc qdisc replace dev eno1 clsact
+ExecStart=/usr/sbin/tc filter replace dev eno1 egress pref 10 protocol ip flower dst_mac b0:5c:da:2e:bf:05 action vlan push id 0
+ExecStop=-/usr/sbin/tc qdisc del dev eno1 clsact
+ExecStop=-/usr/sbin/ethtool -K eno1 rxvlan on txvlan on
+[Install]
+WantedBy=sys-subsystem-net-devices-eno1.device

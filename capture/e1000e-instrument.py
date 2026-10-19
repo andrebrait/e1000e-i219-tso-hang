@@ -11,5 +11,13 @@ c = c.replace(a, a + (
     "\t\t\t     offset_in_page(skb->data),\n"
     "\t\t\t     (int)(offset_in_page(skb->data) + skb_tcp_all_headers(skb) > PAGE_SIZE),\n"
     "\t\t\t     (int)(offset_in_page(skb->data) + skb_headlen(skb) > PAGE_SIZE));\n"))
+# v2 only: log each packet diverted to software segmentation, in the layout that was checked.
+g = "\tstruct sk_buff *segs, *seg, *next;\n\tint count = 2;\n\n"
+if c.count(g) == 1:
+    c = c.replace(g, g + (
+        "\ttrace_printk(\"e1000e-swgso len=%u headlen=%u frags=%u hdr=%u mss=%u segs=%u pgoff=%lu\\n\",\n"
+        "\t\t     skb->len, skb_headlen(skb), skb_shinfo(skb)->nr_frags,\n"
+        "\t\t     skb_tcp_all_headers(skb), skb_shinfo(skb)->gso_size, skb_shinfo(skb)->gso_segs,\n"
+        "\t\t     offset_in_page(skb->data));\n"))
 open("netdev.c", "w").write(c)
 print("instrumented")

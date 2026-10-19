@@ -1,0 +1,10 @@
+[Unit]
+Description=e1000e reproducer: packet tap on eno1, so e1000_tso() copies cloned headers (temporary)
+BindsTo=sys-subsystem-net-devices-eno1.device
+After=sys-subsystem-net-devices-eno1.device
+[Service]
+ExecStart=/usr/local/sbin/e1000e-tap.py eno1
+Restart=always
+RestartSec=5s
+[Install]
+WantedBy=sys-subsystem-net-devices-eno1.device

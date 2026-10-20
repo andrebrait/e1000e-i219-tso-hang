@@ -20,7 +20,7 @@ Intel wired Ethernet fixes go through Intel's queue, not straight to netdev:
 | | |
 |---|---|
 | To | `intel-wired-lan@lists.osuosl.org` (moderated for non-subscribers; subscribe first or expect a delay) |
-| Cc | `netdev@vger.kernel.org`, Tony Nguyen `<anthony.l.nguyen@intel.com>`, Przemek Kitszel `<przemyslaw.kitszel@intel.com>`, and Gabriel (who reviewed v1) |
+| Cc | `netdev@vger.kernel.org`, Tony Nguyen `<anthony.l.nguyen@intel.com>`, Przemek Kitszel `<przemyslaw.kitszel@intel.com>`, and Gabriel Goller `<g.goller@proxmox.com>` (reviewed v1) |
 | Tree | `git://git.kernel.org/pub/scm/linux/kernel/git/tnguy/net-queue.git` (bug fixes; subject prefix `[PATCH iwl-net]`) |
 | Tracking | https://patchwork.ozlabs.org/project/intel-wired-lan/list/ |
 
@@ -49,7 +49,7 @@ In `~/git/kernel/net-queue` on branch `e1000e-v3`:
 1. Read the patch and the notes, then certify the DCO: `git commit --amend -s --no-edit`
 2. Regenerate: `rm -rf outgoing && git format-patch -v2 -1 -o outgoing`
 3. Send (asks for the Gmail app password, stored in the keychain after the first time):
-   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc=<Gabriel's address> outgoing/*.patch`
+   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc="Gabriel Goller <g.goller@proxmox.com>" outgoing/*.patch`
 
 Post it as a new thread, not as a reply to v1: `Documentation/process/maintainer-netdev.rst`
 ("Resending after review") asks for a separate thread with a link to the previous posting, which

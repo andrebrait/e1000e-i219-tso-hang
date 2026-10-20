@@ -1,0 +1,56 @@
+# Submitting the e1000e fix upstream
+
+| Version on the list | Status |
+|---|---|
+| v1, "e1000e: segment TSO packets whose headers cross a 4 KB boundary" | sent 2026-10-18: https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/ ; superseded |
+| v2, "e1000e: work around TSO erratum that corrupts data and hangs Tx" | ready, not sent: `v2-0001-e1000e-work-around-TSO-erratum-that-corrupts-data.patch` |
+
+An intermediate fix (tag `e1000e-v2-candidate`, "check the final layout in `e1000_xmit_frame()`")
+was never sent: it had the same blind spot as v1 and a transmit-stall bug (see `../REPORT.md`).
+
+v2 is the commit on branch `e1000e-v3` of `~/git/kernel/net-queue` (base `dev-queue`,
+`0344a46e40a4`). Its changelog is `v3-commit-message.txt`; the notes below the `---` come from
+`v3-reviewer-notes.txt`, attached as a git note. Both link the public evidence pinned at
+https://github.com/andrebrait/e1000e-i219-tso-hang/tree/98215025d5a8 .
+
+## Where it goes
+
+Intel wired Ethernet fixes go through Intel's queue, not straight to netdev:
+
+| | |
+|---|---|
+| To | `intel-wired-lan@lists.osuosl.org` (moderated for non-subscribers; subscribe first or expect a delay) |
+| Cc | `netdev@vger.kernel.org`, Tony Nguyen `<anthony.l.nguyen@intel.com>`, Przemek Kitszel `<przemyslaw.kitszel@intel.com>`, and Gabriel (who reviewed v1) |
+| Tree | `git://git.kernel.org/pub/scm/linux/kernel/git/tnguy/net-queue.git` (bug fixes; subject prefix `[PATCH iwl-net]`) |
+| Tracking | https://patchwork.ozlabs.org/project/intel-wired-lan/list/ |
+
+## Checks done (2026-10-20)
+
+- Applies to `dev-queue`; all e1000e objects compile there with `W=1` and no warnings (not
+  runtime-tested on a `dev-queue` kernel, only on 7.0.14).
+- `checkpatch.pl --strict -g HEAD`: only the missing `Signed-off-by` (added by the submitter) and
+  the `Fixes:` id, which a shallow clone cannot resolve; `bc7f75fa9788` was verified on
+  git.kernel.org.
+- Test plan in `../v3-test.sh`, results in `../evidence/v3/results.txt` and `../REPORT.md`
+  ("Final fix").
+- Classified as a regular bug, not a vulnerability (decision by the submitter, 2026-10-18).
+
+## AI disclosure
+
+Per `Documentation/process/coding-assistants.rst` and `generated-content.rst`: the changelog says
+the problem was diagnosed and the fix written with an AI coding assistant, and carries
+`Assisted-by: LLM`; the notes describe what the assistant did and what the submitter did. The AI
+does not add `Signed-off-by` and does not send the patch: only the submitter can certify the DCO.
+
+## Sending (submitter)
+
+In `~/git/kernel/net-queue` on branch `e1000e-v3`:
+
+1. Read the patch and the notes, then certify the DCO: `git commit --amend -s --no-edit`
+2. Regenerate: `rm -rf outgoing && git format-patch -v2 -1 -o outgoing`
+3. Send (asks for the Gmail app password, stored in the keychain after the first time):
+   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc=<Gabriel's address> --in-reply-to=20261018203215.77371-1-andrebrait@gmail.com outgoing/*.patch`
+
+`--in-reply-to` threads v2 under v1, so reviewers see the history; drop it to start a new thread
+instead (netdev accepts both). Then follow the thread on patchwork and answer review comments
+yourself.

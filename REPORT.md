@@ -1,7 +1,16 @@
-# e1000e: transmit hang on I219 when a TSO packet's headers cross a 4 KB boundary
+# e1000e: TSO erratum on I219 corrupts data and hangs the transmit DMA
 
-Investigation report for the upstream patch
-`fix/0001-e1000e-segment-TSO-packets-whose-headers-cross-a-4-KB-boundary.patch`.
+Investigation report for the upstream patch "e1000e: work around TSO erratum that corrupts data
+and hangs Tx" (`[PATCH iwl-net v2]`, `fix/v2-0001-e1000e-work-around-TSO-erratum-that-corrupts-data.patch`),
+which replaces v1 ("segment TSO packets whose headers cross a 4 KB boundary", posted 2026-10-18).
+
+**Current conclusion (2026-10-20).** This is the TSO erratum Intel documents for the 82571/82572
+(#76), 82574 (#17) and 82583V (#7): with a long first buffer and a 4 KB boundary just after the
+headers, the NIC repeats a read, sends wrong data with a correct checksum, and the Tx DMA hangs.
+On the I219-LM the window is 1-16 bytes after the TCP checksum field. Intel's workaround (headers in
+a first buffer of at most `3 * (max_read_request - 4)` = 372 bytes) fixes it; see "Final fix" at
+the end. The sections in between record the investigation in order, including the earlier
+hypotheses ("headers cross 4 KB") that the later tests refined or replaced.
 
 ## Summary
 
@@ -17,9 +26,9 @@ anywhere in a page. The host's own TCP stack never produces them, because its TS
 headers in a small separately allocated linear head. That is why only hypervisor hosts with a busy
 VM bridged onto the I219 were affected.
 
-The fix implements `ndo_features_check` in e1000e: for TCP GSO packets whose headers cross a 4 KB
-boundary, it clears the GSO features, so the stack segments those few packets in software. All
-other packets keep TSO and checksum offload.
+v1 implemented `ndo_features_check` in e1000e: for TCP GSO packets whose headers cross a 4 KB
+boundary, it cleared the GSO features, so the stack segmented those packets in software. Later
+tests showed that this condition is incomplete (see "Split sweep"); the final fix is different.
 
 Before the queue stops, the NIC also **sends corrupted payload**. A reproducer that checks every
 received byte caught it at each of 10 hangs: the TCP segments carried the stream data from
@@ -416,3 +425,29 @@ as well. The data here should let Intel confirm it:
   than assumed to be 372 B?
 - Does it apply to PCH generations after CNP? Reports with the same symptoms exist on ADP and MTP
   (`evidence/related/similar-issues.md`, findings 5 and 7).
+
+## Final fix (2026-10-20)
+
+`fix/e1000e-v3.py` (12 lines): `e1000e_reset()` stores `3 * (pcie_get_readrq(pdev) - 4)` in
+`adapter->tx_hdr_buf_max`, and `e1000_tx_map()` limits the first data descriptor of a TSO packet to
+that many bytes. On the I219, which has no PCIe capability, `pcie_get_readrq()` returns 128 and the
+limit is 372 bytes (read back by a test build: `readrq 128 tx_hdr_buf_max 372`). The rest of the
+linear part goes in the next descriptor; `e1000_xmit_frame()` already reserves one descriptor more
+than the linear part needs (legacy e1000 uses it for its TSO sentinel), so the count is unchanged.
+The NIC still segments the packet: hardware TSO stays on.
+
+Tests (`v3-test.sh`, `evidence/v3/results.txt`), upstream v7.0.14 e1000e, verified traffic:
+
+| Test | Unpatched | v3 |
+|---|---|---|
+| Placed at hang offsets, 66-byte headers (N = 51, 56, 60, 64, 66) | hang in seconds | no hang, about 1,000 packets each |
+| Placed, 54-byte headers (N = 51, 64, 66) | hang | no hang |
+| Placed, 70-byte headers, VLAN (N = 55, 70) | hang | no hang |
+| Natural traffic, TCP timestamps on | hang at 387 s | 60 min, no hang |
+| Natural traffic, TCP timestamps off | hang at 402 s | 40 min, no hang |
+| Natural traffic, VLAN tag inserted by the stack | hang at 1,176 s | 40 min, no hang |
+
+The unpatched driver corrupted payload at every hang. v3 corrupted none, had no transmit timeouts
+or drops, and the NIC counted 26,527,634 hardware TSO segments (`tx_tcp_seg_good`) in the three
+runs. On net-queue `dev-queue` (`0344a46e40a4`) it builds with `W=1` without warnings and
+`checkpatch --strict` is clean apart from the `Fixes:` id (shallow clone).

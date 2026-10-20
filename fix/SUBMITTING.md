@@ -49,8 +49,9 @@ In `~/git/kernel/net-queue` on branch `e1000e-v3`:
 1. Read the patch and the notes, then certify the DCO: `git commit --amend -s --no-edit`
 2. Regenerate: `rm -rf outgoing && git format-patch -v2 -1 -o outgoing`
 3. Send (asks for the Gmail app password, stored in the keychain after the first time):
-   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc=<Gabriel's address> --in-reply-to=20261018203215.77371-1-andrebrait@gmail.com outgoing/*.patch`
+   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc=<Gabriel's address> outgoing/*.patch`
 
-`--in-reply-to` threads v2 under v1, so reviewers see the history; drop it to start a new thread
-instead (netdev accepts both). Then follow the thread on patchwork and answer review comments
-yourself.
+Post it as a new thread, not as a reply to v1: `Documentation/process/maintainer-netdev.rst`
+("Resending after review") asks for a separate thread with a link to the previous posting, which
+the notes carry ("v1: https://lore.kernel.org/..."). Then follow the thread on patchwork and answer
+review comments yourself.

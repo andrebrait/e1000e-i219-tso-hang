@@ -1,0 +1,33 @@
+# Intel 82574 Specification Update Rev 4.1, erratum 17 (verbatim, pdftotext -layout)
+# Source: https://cdrdv2-public.intel.com/320709/82574-specupdate-rev4-1-external-320709.pdf
+
+17. Tx Data Corruption When Using TCP Segmentation Offload
+
+Problem:      When using TSO, a situation can occur where a PCIe MRd request is repeated with the
+              same address, resulting in data corruption. At the end of the TCP packet, the Tx DMA
+              hangs because the length doesn't match. This can only occur when the following are
+              true:
+               •    The first buffer of the packet is larger than [3 * (max_read_request - 4)].
+               •    There is a 4 KB boundary within 64 bytes following the end of the header bytes in
+                    the buffer
+
+Implication: Possible data corruption since a TCP packet is transmitted containing the wrong data but
+             with the correct checksum.
+
+              Data transmission halts as the Tx DMA module enters a hang state.
+
+Workaround: The failure can be avoided by ensuring at least one of the following:
+               •    The buffer containing the headers should not be larger than [3 *
+                    (max_read_request - 4)]. To meet this requirement even for the minimum value of
+                    128 bytes for max_read_request, the buffer should not be larger than 372 bytes.
+               •    The alignment of the buffer containing the headers should be such that there is no
+                    4 KB boundary within 64 bytes following the end of the header bytes. Assuming
+                    standard Ethernet/IP/TCP headers of 54 bytes, this means that the buffer should
+                    not start 54-118 bytes before a 4 KB boundary. For example, 128-byte alignment
+                    for this buffer could be used to fulfill this condition.
+
+              This problem has not been reported when using an Intel Linux* or Windows* drivers.
+              Current analysis shows it is very unlikely for a situation to exist that would cause the
+              82574 to be at risk for the errata when using the Intel Linux or Windows drivers.
+
+Status: A1=Yes; No Fix

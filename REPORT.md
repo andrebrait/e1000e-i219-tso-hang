@@ -294,13 +294,125 @@ All on 2026-10-18 (UTC), proxmox-6 (I219-LM), kernel 7.0.14-24-pve, offloads at 
 
 2026-10-19: v1 and v2 runs with and without software VLAN insertion; see "VLAN tests".
 
+## Split sweep (2026-10-19/20, test only)
+
+A test-only build (`fix/e1000e-split-sweep.py` on top of v2) moves linear TSO packets back inside
+their headroom so that the buffer starts exactly N bytes before a 4 KB boundary, and sends them with
+TSO; every other TSO packet whose buffer crosses 4 KB within its first 256 bytes is segmented in
+software, so a hang can only come from a placed packet. `split-sweep.sh` sets N on the running host
+and waits for a hang (the watcher reboots the host, which also resets N) or for 1,000 placed packets
+(25 minutes at most). All runs: `evidence/split-sweep/results.txt`.
+
+| Header (bytes) | TCP checksum offset | Hangs for N | No hang at |
+|---|---|---|---|
+| 66 (TCP timestamps) | 50 | 51-66 | 1, 2, 4, 8, 16, 32, 48, 49, 50, 67, 69, 75, 87, 111, 159, 255 |
+| 54 (no TCP options) | 50 | 51-66 (51, 64, 66 tested) | 50, 67, 69, 75, 87, 111, 159, 255 |
+| 70 (VLAN tag in the data) | 54 | 55-70 (55, 70 tested) | 52, 54, 71 |
+
+- **The NIC hangs when a 4 KB boundary falls in the 16 bytes that start at the TCP checksum field:**
+  N from `tucso` + 1 to `tucso` + 16, where `tucso` is the checksum's offset in the frame. The
+  window moves with the checksum (VLAN shifts it by 4) and does not depend on where the header
+  ends: with a 54-byte header it extends 12 bytes into the payload.
+- **Every hang corrupted payload.** The received data came from 128 bytes earlier in the stream
+  when N was a multiple of 4 (the buffer starts 4-byte aligned) and from 124 bytes earlier
+  otherwise; all 24 corrupted chunks fit (`evidence/split-sweep/mismatch-deltas.txt`).
+- **v1 and v2 do not cover the window.** With guest TCP timestamps off (54-byte headers) a buffer
+  at page offset 4032 puts the boundary 10 bytes into the payload, inside the window, while the
+  headers do not cross. The posted v1 (`E7777359`) and the tagged v2 (`85CEFF7A`) both hung on
+  exactly this packet, within 5 minutes and 47 seconds (`evidence/ts-off/`). Windows disables TCP
+  timestamps by default, so Windows guests are likely affected too [INFERENCE: untested].
+- **v2 can stall the transmit queue.** The sweep build diverts larger packets than v2 ever did,
+  which exposed that `e1000_xmit_gso_sw()` returns `NETDEV_TX_BUSY` (or drops) without writing
+  the tail: descriptors queued earlier under `xmit_more` never reach the NIC and the netdev
+  watchdog resets the adapter. Sweep module 2 hit this; module 3 writes the tail on both paths.
+  Diverting packets with more segments than fit the ring also made the drop path reachable (4,178
+  drops in 10 minutes under module 3; most likely host TCP with MSS 536 [INFERENCE: not traced]).
+
+## Existing SPT/KBL errata workaround (2026-10-20)
+
+`e1000_configure_tx()` already carries an Intel workaround for "Tx hang" and "data corruption" on
+SPT/KBL (`e1000_pch_spt` only): set `E1000_RCTL_RDMTS_HEX` in IOSFPC and cut TARC0's outstanding
+requests from 3 to 2. Our I219-LM is CNP (`0x15BB`, `e1000_pch_cnp`), so it does not get it.
+Extending it to `>= e1000_pch_spt` (`fix/e1000e-errata-cnp.py`, on top of the sweep build) changed
+TARC0 from `0d800403` to `2d800403` in every boot; IOSFPC was already `01011108`, with RDMTS_HEX
+set by default. The NIC still hung at N=51, 64 and 66, each time with corrupted payload
+(`evidence/errata/`). The SPT/KBL workaround does not cover this bug.
+
+## Looking for a controller parameter behind the window (2026-10-20)
+
+A fix that hardcodes "16 bytes" fits the I219-LM by measurement; another MAC could have a different
+span. We looked for a property of the controller that the window or the corruption shift could
+correspond to, so the fix could use it instead of a constant. We found none:
+
+| Measured | Plausible hardware meaning | Visible anywhere? |
+|---|---|---|
+| Window: the 4 KB boundary falls 1-16 bytes after the TCP checksum offset (`tucso` < N <= `tucso` + 16) | the TSO engine's header unit or internal datapath width (128 bits); also the TX descriptor size | no: not in the driver, the registers it uses, or the public datasheets |
+| Corruption: data from 128 bytes earlier (124 when N is not a multiple of 4) | the NIC's DMA fetch or burst unit | no: the integrated I219 has no PCIe capability (no Max Read Request Size), and the on-chip fabric (IOSF) parameters are not documented |
+| TXDCTL `0141001f` (PTHRESH 31, WTHRESH 1, GRAN, COUNT_DESC) | descriptor prefetch | visible, but it governs descriptor fetches, not packet data |
+| IOSFPC (0x0F28, "TX corrupted data") and TARC0 request count | Intel's SPT/KBL fix for Tx corruption and hangs | visible; extending it to CNP did not help (see above) |
+
+Intel does not publish the I219 MAC registers: the PCH and I219 datasheets describe the features
+but not their configuration registers
+([Intel community, 2025](https://community.intel.com/t/i219-lm-ethernet-controller-documentation/133339)).
+The search did not stop there: the related-controller research below found the parameter in
+Intel's own errata for the older e1000e MACs (Max Read Request size).
+
+## The same erratum on 82571/82572/82574/82583V (2026-10-20)
+
+Intel documents this bug for the 8257x MACs that e1000e also drives: 82571EB/82572EI erratum 76,
+82574 erratum 17 and 82583V erratum 7, all "Tx Data Corruption When Using TCP Segmentation
+Offload", with identical text (`evidence/related/82574-erratum-17.txt`, verbatim from the
+[82574 specification update, Rev 4.1](https://cdrdv2-public.intel.com/320709/82574-specupdate-rev4-1-external-320709.pdf)):
+
+> When using TSO, a situation can occur where a PCIe MRd request is repeated with the same address,
+> resulting in data corruption. At the end of the TCP packet, the Tx DMA hangs because the length
+> doesn't match. This can only occur when the following are true: the first buffer of the packet is
+> larger than [3 * (max_read_request - 4)]; there is a 4 KB boundary within 64 bytes following the
+> end of the header bytes in the buffer.
+
+| | 8257x errata (Intel) | I219-LM (CNP), measured here |
+|---|---|---|
+| Effect | wrong data with the correct checksum, then a Tx DMA hang | the same |
+| First buffer | larger than `3 * (max_read_request - 4)` (372 B at the minimum 128) | linear buffers of about 2,960 B |
+| Window | 4 KB boundary within 64 B after the end of the headers | 4 KB boundary 1-16 B after the TCP checksum offset |
+| Corrupted data | a repeated read request | shifted back 128 B, or 124 B = 128 - 4 (the "- 4" of Intel's formula) |
+| Workaround | headers in a buffer of at most `3 * (max_read_request - 4)`, or no 4 KB boundary in the window | — |
+
+The mainline e1000e implements neither workaround for the 8257x MACs (only erratum 23, the 4-byte
+pull), and Intel's text says its own drivers were "very unlikely" to hit it. Forwarded VM traffic is
+the unusual case: tun/vhost hands the driver large linear buffers at arbitrary offsets.
+
+**Tests on the I219** (sweep build, window values that hang within seconds without a fix):
+
+| Change (test only) | N=64 | N=51 | N=60 | N=66 |
+|---|---|---|---|---|
+| none | hang | hang | hang | hang |
+| end the first TSO descriptor at the 4 KB boundary | hang | hang | - | no hang |
+| **first TSO descriptor at most 372 B (Intel's workaround)** | **no hang** | **no hang** | **no hang** | **no hang** |
+
+- Splitting at the boundary does not help: the stuck packets then had 64 (or 51) header bytes in
+  the first descriptor and the rest in a separately mapped page, so a 4 KB crossing inside one
+  buffer is not required; what matters is where the header fetch is cut.
+- Intel's 372-byte cap prevented every hang and corruption (about 1,000 placed packets per value),
+  although the 4 KB boundary stays inside the window: as the erratum says, breaking either
+  condition is enough. `evidence/hdrbuf372/`, `evidence/descsplit/`.
+- So the controller parameter we looked for is the Max Read Request size. The integrated I219 has
+  no PCIe capability to read it from; the corruption shift (128) matches the 128-byte minimum that
+  Intel's 372-byte figure assumes.
+
+Related reports and other vendors' fixes for this class of bug (19 findings, with links):
+`evidence/related/similar-issues.md`.
+
 ## Open questions for Intel
 
-- Is this a known I219 (PCH) erratum, and does it apply to other e1000e MACs (82574, 82579,
-  I217/I218)? We only had I219-LM/-V; the fix is applied to all e1000e devices because the check is
-  cheap and the affected packets are rare.
-- Is the exact condition "headers cross a 4 KB boundary", or "the first descriptor's buffer crosses
-  4 KB within the first N bytes"? The data fits the former; all stuck packets also crossed within
-  the first 64 bytes. A split of 4 bytes before the boundary and 66 after (from software VLAN
-  insertion) did not hang in about 1,700 instances; the hanging packets all had 64 bytes before and
-  2 after.
+We cannot see inside the NIC, so we propose Intel's own documented workaround, applied to the I219
+as well. The data here should let Intel confirm it:
+
+- Is 82574 erratum 17 (82571/82572 #76, 82583V #7) present in the I217/I218/I219 MACs? The I218/I219
+  specification update does not list it. Our window (1-16 B after the TCP checksum offset) differs
+  from the documented one (64 B after the headers): is the TSO engine different, or is the
+  documented window approximate?
+- What is the effective max_read_request of the integrated I219, so the cap can be computed rather
+  than assumed to be 372 B?
+- Does it apply to PCH generations after CNP? Reports with the same symptoms exist on ADP and MTP
+  (`evidence/related/similar-issues.md`, findings 5 and 7).

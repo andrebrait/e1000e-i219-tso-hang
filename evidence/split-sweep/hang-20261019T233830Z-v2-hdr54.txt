@@ -1,0 +1,23 @@
+# Hang 20261019T233830Z with split_before=0 (v2 logic), guest TCP timestamps off
+e1000e 0000:00:1f.6 eno1: Detected Hardware Unit Hang:
+                                   TDH                  <2d>
+                                   TDT                  <b7>
+                                   next_to_use          <b7>
+                                   next_to_clean        <2c>
+                                 buffer_info[next_to_clean]:
+                                   time_stamp           <fffc6cf7>
+                                   next_to_watch        <2d>
+                                   jiffies              <fffc74c0>
+                                   next_to_watch.status <0>
+                                 MAC Status             <80083>
+                                 PHY Status             <796d>
+                                 PHY 1000BASE-T Status  <3800>
+                                 PHY Extended Status    <3000>
+                                 PCI Status             <10>
+e1000e: Td[0x029]    00000000FF9234BE 00000000AB100042 0000000000000000 0042   29 0000000000000000 0000000000000000
+e1000e: Tc[0x02A]    0000322200000000 0000000021000000 0000000000000000 0042   2B 0000000000000000 0000000000000000
+e1000e: Td[0x02B]    00000000FFC3CEBE 00000000AB100042 0000000000000000 0042   2B 0000000000000000 0000000000000000
+e1000e: Tc[0x02C]    000032220021180E 05B4360027000B68 0000000000000000 0042   2D 00000000FFFC6CF7 0000000000000000 NTC
+e1000e: Td[0x02D]    00000000FEDDEFC0 00000300AF100B9E 00000000FEDDEFC0 0B9E   2D 00000000FFFC6CF7 000000002a325f03
+e1000e: Tc[0x02E]    000032220021180E 020C42002700850C 0000000000000000 0042   36 00000000FFFC6CF7 0000000000000000
+e1000e: Td[0x02F]    00000000FED783BE 0000030026100046 00000000FED783BE 0046   2F 00000000FFFC6CF7 0000000000000000

@@ -1,65 +1,70 @@
-# Intel I219 (e1000e) transmit hang on TSO packets whose headers cross a 4 KB boundary
+# Intel I219 (e1000e) TSO erratum: corrupted data and transmit hang
 
-Reproducer, debugging tools and raw evidence for the upstream Linux patch
-"e1000e: segment TSO packets whose headers cross a 4 KB boundary" (`[PATCH iwl-net]`, posted to
-intel-wired-lan and netdev on 2026-10-18: https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/).
+Reproducer, debugging tools and raw evidence for an upstream Linux patch to e1000e.
+v1 ("e1000e: segment TSO packets whose headers cross a 4 KB boundary") was posted to
+intel-wired-lan and netdev on 2026-10-18
+(https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/); review led to
+a deeper investigation and a different fix, "e1000e: work around TSO erratum that corrupts data and
+hangs Tx".
 
-On I219-LM (8086:15bb) and I219-V (8086:15bc), the transmit DMA stops for good on a TSO packet
-whose protocol headers cross a 4 KB boundary in the buffer that holds them. e1000e then logs
-`Detected Hardware Unit Hang` every two seconds and the link stays down until the adapter is reset.
-Just before the queue stops, the NIC sends corrupted TCP payload (the stream data from 128 bytes
-earlier) with a valid checksum. Such packets come from forwarded guest traffic (virtio-net and
-vhost-net bridged onto the I219), so hypervisor hosts are the ones affected. The fix makes e1000e
-segment those few packets in software.
+**The bug.** When the first buffer of a TSO packet is long and a 4 KB boundary lies just after its
+headers, the NIC repeats a DMA read: it transmits TCP segments carrying the stream data from 128
+bytes earlier with a valid checksum, then the transmit DMA hangs (`Detected Hardware Unit Hang`).
+Intel documents this for the 82571/82572 (erratum 76), 82574 (erratum 17) and 82583V (erratum 7);
+we measured it on the I219-LM (CNP), where the window is 1 to 16 bytes after the TCP checksum
+field. Forwarded VM traffic (tun/vhost-net, bridged onto the I219) produces such packets, so
+hypervisor hosts are the ones that hit it.
 
-The full investigation is in [`REPORT.md`](REPORT.md).
+**The fix.** Intel's documented workaround, applied to all e1000e MACs: keep a TSO packet's headers
+in a first buffer of at most `3 * (max_read_request - 4)` bytes (372 on the I219)
+([`fix/e1000e-v3.py`](fix/e1000e-v3.py)). Hardware TSO stays on.
+
+The full investigation, including the approaches that did not work, is in [`REPORT.md`](REPORT.md).
 
 ## Results
 
-Upstream v7.0.14 e1000e, built from one source tree with and without the patch
-([`evidence/ab/tree.diff`](evidence/ab/tree.diff)), on an I219-LM under the same verified traffic.
-The rest of the setup was fingerprinted before each run and was identical
-([`evidence/ab/manifest-*.txt`](evidence/ab)).
+Upstream v7.0.14 e1000e on an I219-LM, with verified guest and host traffic (the receiver checks
+every byte); all runs in [`evidence/v3/results.txt`](evidence/v3/results.txt).
 
-| | Duration | Hangs | Corrupted TCP chunks | TCP verified | Throughput | UDP loss |
-|---|---|---|---|---|---|---|
-| Without patch | 64 min | 5 | 6 | 0.24 TB | 794-813 Mb/s | 0.021% |
-| With patch | 252 min | 0 | 0 | 1.51 TB | 795-813 Mb/s | 0.022% |
+| Test | Unpatched | Patched |
+|---|---|---|
+| TSO buffers placed at hang offsets, 66-byte headers (N = 51, 56, 60, 64, 66) | hang in seconds | no hang, about 1,000 packets each |
+| Placed, 54-byte headers (N = 51, 64, 66) | hang | no hang |
+| Placed, 70-byte headers, VLAN (N = 55, 70) | hang | no hang |
+| Natural traffic, TCP timestamps on | hang at 387 s | 60 min, no hang |
+| Natural traffic, TCP timestamps off | hang at 402 s | 40 min, no hang |
+| Natural traffic, VLAN tag inserted by the stack | hang at 1,176 s | 40 min, no hang |
 
-Every corrupted chunk ([`evidence/ab/mismatches.txt`](evidence/ab/mismatches.txt), which also
-covers a run with Proxmox's own e1000e build) held the stream data from exactly 128 bytes earlier
-and arrived at the moment a hang began.
+The unpatched driver corrupted payload at every hang; the patched one corrupted none, had no
+transmit timeouts or drops, and the NIC counted 26.5 million hardware TSO segments.
 
-### v2 (2026-10-19)
+How the window was found and what else was tried: [`evidence/split-sweep/`](evidence/split-sweep)
+(placement sweep), [`evidence/ts-off/`](evidence/ts-off) (v1 and the intermediate v2 hang with
+54-byte headers), [`evidence/errata/`](evidence/errata) (SPT/KBL register workaround: no effect),
+[`evidence/descsplit/`](evidence/descsplit) (splitting at 4 KB: no effect),
+[`evidence/hdrbuf372/`](evidence/hdrbuf372) (Intel's workaround: fixes it), and related reports and
+errata from other controllers with links in
+[`evidence/related/similar-issues.md`](evidence/related/similar-issues.md).
 
-Review of v1 showed that the stack can move the headers after `ndo_features_check` (software VLAN
-insertion, `skb_cow_head()`), so v2 checks in `e1000_xmit_frame()`, on the final layout, and
-segments failing packets in the driver ([`fix/e1000e-v2.py`](fix/e1000e-v2.py)). The VLAN setup
-([`e1000e-vlan-test.service`](reproducer/units/test-host/e1000e-vlan-test.service)) forces software
-tag insertion; manifests are in [`evidence/vlan/`](evidence/vlan).
-
-| | Setup | Duration | Hangs | Corrupted | TCP verified | Crossing TSO packets reaching the NIC |
-|---|---|---|---|---|---|---|
-| v1 | VLAN | 72 min | 0 | 0 | 0.42 TB | about 1,700 (4 bytes before the boundary, 66 after) |
-| v2 | VLAN | 47 min | 0 | 0 | 0.27 TB | 0 |
-| v2 | no VLAN | 60 min | 0 | 0 | 0.35 TB | 0 |
-
-The NIC tolerated the 4/66 split that v1 let through; the hanging packets all had 64 bytes before
-the boundary and 2 after. See "VLAN tests" in [`REPORT.md`](REPORT.md).
+Earlier results for v1 (A/B soak, VLAN runs) remain in [`REPORT.md`](REPORT.md),
+[`evidence/ab/`](evidence/ab) and [`evidence/vlan/`](evidence/vlan); tag `v2` marks the state before
+the sweep.
 
 ## Contents
 
 | Path | What it is |
 |---|---|
 | [`REPORT.md`](REPORT.md) | Investigation report: symptom, captures, analysis, fix, test log |
-| [`evidence/`](evidence) | Hang captures (register and TX ring dumps, per-packet TSO layout logs) and the A/B run data |
+| [`evidence/`](evidence) | Hang captures, sweep and run results, related errata and reports, raw logs |
 | [`reproducer/e1000e-verify.py`](reproducer/e1000e-verify.py) | Traffic generator whose receiver checks every byte (`sink`, `send <peer>`, `load <peer> <mss> <streams>`) |
 | [`reproducer/units/`](reproducer/units) | The exact systemd units used on the test host, the peer and the guest |
 | [`reproducer/manifest.sh`](reproducer/manifest.sh) | Fingerprint of the setup apart from the driver, so A/B runs can be compared |
+| [`reproducer/split-sweep.sh`](reproducer/split-sweep.sh), [`split-bisect.sh`](reproducer/split-bisect.sh), [`v3-test.sh`](reproducer/v3-test.sh), [`confirm-run.sh`](reproducer/confirm-run.sh) | Drivers for the placement sweep, its bisection, the final test plan and single-module runs |
 | [`capture/e1000e-debug-watch.sh`](capture/e1000e-debug-watch.sh) | Hang watcher: driver ring dumps, transmit trace, NIC and PCIe state at each hang |
 | [`capture/e1000e-instrument.py`](capture/e1000e-instrument.py) | Adds a `trace_printk()` of each TSO packet's layout to `e1000_xmit_frame()`, and of each v2 diversion (no behaviour change) |
 | [`capture/e1000e-tap.py`](capture/e1000e-tap.py) | Packet tap that keeps transmitted skbs cloned, so `e1000_tso()` copies their headers |
-| [`fix/`](fix) | The v1 patch as posted, the v2 transform, and the instrumented variant used in the first soak |
+| [`capture/e1000e-regs.py`](capture/e1000e-regs.py) | Reads NIC registers from BAR0 |
+| [`fix/`](fix) | The v1 patch as posted, the final fix (`e1000e-v3.py`), and every test-only transform: placement (`e1000e-split-place.py`, `e1000e-split-sweep.py`), the intermediate v2, SPT/KBL errata extension, descriptor split, 372-byte cap |
 | [`earlier-reproducer/`](earlier-reproducer) | The first reproducer (`iperf3` and a sparse generator, data not checked) |
 
 `reproducer/e1000e-verify.py` and the unit files are byte-identical to what ran in the A/B test;
@@ -78,16 +83,18 @@ machine on the same switch as the peer (offloads off on the peer, so it cannot h
    Hang`. Optionally run `capture/e1000e-debug-watch.sh <iface> <peer>` on the test host to capture
    each hang.
 
-Without the patch, our I219-LM hung about every 7 to 13 minutes. MTU was 1500, and EEE and flow
-control were on.
+Without a fix, our I219-LM hung about every 7 to 13 minutes with TCP timestamps on, and within
+minutes with them off. MTU was 1500, and EEE and flow control were on. To hit a chosen offset
+directly, build e1000e with `fix/e1000e-split-place.py` and set
+`/sys/module/e1000e/parameters/split_before`.
 
 ## How this was made
 
 The investigation and the patch were done with the help of an AI coding assistant (Claude, by
 Anthropic), running as an agent with SSH access to the test hosts. The assistant wrote the tools in
-this repository, analysed the captures and drafted the patch and the report. Andre Brait provided
-the hardware, directed the work, required the byte-verifying reproducer and the controlled A/B
-test, and reviewed the results.
+this repository, ran and analysed the tests, found the matching Intel erratum, and drafted the patch
+and the report. Andre Brait provided the hardware, directed the work, set the evidence standards
+(byte-verified traffic, controls that must fail first, identical setups), and reviewed the results.
 
 ## License
 

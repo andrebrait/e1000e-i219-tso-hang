@@ -1,0 +1,7 @@
+2026-10-20T09:13:53 N=64 result=hang placed=39 seconds=29 mismatches=1 (sweep3e = sweep3 + errata on CNP, hdr 66)
+2026-10-20T09:19:22 N=66 result=hang placed=0 seconds=18 mismatches=1 (sweep3e = sweep3 + errata on CNP, hdr 66)
+2026-10-20T09:24:52 N=51 result=hang placed=0 seconds=18 mismatches=1 (sweep3e = sweep3 + errata on CNP, hdr 66)
+# Workaround active in every boot of these runs (kernel log): IOSFPC 01011108 before and after
+# (RDMTS_HEX, 0x00010000, already set by default on CNP), TARC0 0d800403 -> 2d800403 (2 outstanding
+# requests instead of the default). Still hangs at N=51, 64 and 66, each with corrupted payload:
+# the SPT/KBL Si errata workaround does not prevent this bug on CNP.

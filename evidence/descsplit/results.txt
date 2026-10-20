@@ -1,0 +1,4 @@
+2026-10-20T10:21:36 N=64 result=hang placed=0 seconds=18 mismatches=0 (sweep3d = sweep3 + first TSO descriptor ends at 4 KB, hdr 66)
+2026-10-20T10:27:04 N=51 result=hang placed=0 seconds=19 mismatches=0 (sweep3d = sweep3 + first TSO descriptor ends at 4 KB, hdr 66)
+2026-10-20T10:32:27 N=66 result=ok placed=1001 seconds=1161 mismatches=0 (sweep3d = sweep3 + first TSO descriptor ends at 4 KB, hdr 66)
+# N=64 and N=51 hangs with the descriptor split: stuck packets had a 64- (51-) byte first data descriptor ending at 4 KB and the rest in a separate descriptor (captures 20261020T102140Z, 20261020T102708Z). A 4 KB crossing inside one buffer is not required.

@@ -1,0 +1,23 @@
+2026-10-20T14:03:50 sweep unpatched+placement, hdr 66: 
+N=64 could not set (unpatched+placement, hdr 66)
+2026-10-20T14:11:13 sweep v3+placement, hdr 66: readrq 128 tx_hdr_buf_max 372
+2026-10-20T14:04:50 N=64 result=hang (control; the driver logged 'could not set' because the NIC hung before the SSH reply: corrupted chunk at 14:04:50, hang capture 20261020T140453Z, stuck packet one descriptor at page offset 0xFC0) (unpatched+placement, hdr 66)
+2026-10-20T14:12:14 N=64 result=ok placed=1010 seconds=630 mismatches=0 (v3+placement, hdr 66)
+2026-10-20T14:23:45 N=51 result=ok placed=1012 seconds=1042 mismatches=0 (v3+placement, hdr 66)
+2026-10-20T14:42:08 N=56 result=ok placed=1013 seconds=1390 mismatches=0 (v3+placement, hdr 66)
+2026-10-20T15:06:19 N=60 result=ok placed=1001 seconds=765 mismatches=0 (v3+placement, hdr 66)
+2026-10-20T15:20:05 N=66 result=ok placed=1001 seconds=1072 mismatches=0 (v3+placement, hdr 66)
+2026-10-20T15:38:32 sweep v3+placement, hdr 54: readrq 128 tx_hdr_buf_max 372
+2026-10-20T15:39:33 N=51 result=ok placed=1000 seconds=1166 mismatches=0 (v3+placement, hdr 54)
+2026-10-20T16:00:00 N=64 result=ok placed=1000 seconds=535 mismatches=0 (v3+placement, hdr 54)
+2026-10-20T16:09:56 N=66 result=timeout placed=785 seconds=1503 mismatches=0 (v3+placement, hdr 54)
+2026-10-20T16:35:40 sweep v3+placement, VLAN hdr 70: readrq 128 tx_hdr_buf_max 372
+2026-10-20T16:36:41 N=55 result=ok placed=1003 seconds=855 mismatches=0 (v3+placement, VLAN hdr 70)
+2026-10-20T16:51:56 N=70 result=ok placed=1002 seconds=1052 mismatches=0 (v3+placement, VLAN hdr 70)
+2026-10-20T17:11:00 natural unpatched, timestamps off module=13BCF787596E0D3E967EF44 ts=0 vlan=0 seconds=402 hangs=1 mismatches=1 tx_timeouts=0 tx_dropped_now=0 tso_segments=436899
+2026-10-20T17:18:39 natural unpatched, VLAN module=13BCF787596E0D3E967EF44 ts=1 vlan=1 seconds=1176 hangs=1 mismatches=1 tx_timeouts=0 tx_dropped_now=0 tso_segments=3168541
+2026-10-20T17:40:39 natural unpatched, timestamps on module=13BCF787596E0D3E967EF44 ts=1 vlan=0 seconds=387 hangs=1 mismatches=1 tx_timeouts=0 tx_dropped_now=0 tso_segments=441067
+2026-10-20T17:48:57 natural v3, timestamps on module=08B710F2DB05F321DA64338 ts=1 vlan=0 seconds=3626 hangs=0 mismatches=0 tx_timeouts=0 tx_dropped_now=0 tso_segments=11390969
+2026-10-20T18:49:56 natural v3, timestamps off module=08B710F2DB05F321DA64338 ts=0 vlan=0 seconds=2406 hangs=0 mismatches=0 tx_timeouts=0 tx_dropped_now=0 tso_segments=7576734
+2026-10-20T19:30:42 natural v3, VLAN module=08B710F2DB05F321DA64338 ts=1 vlan=1 seconds=2406 hangs=0 mismatches=0 tx_timeouts=0 tx_dropped_now=0 tso_segments=7559931
+2026-10-20T20:10:56 v3 test plan done

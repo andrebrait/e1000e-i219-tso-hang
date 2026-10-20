@@ -1,0 +1,14 @@
+v2-exact: guest tcp_timestamps=0
+v2-exact: module 85CEFF7A973FA775F84C5F4, guest traffic from 2026-10-20T03:51:17
+v2-exact: HANG 2026-10-20T03:54:14Z after 47 s (onset estimate); capture /var/lib/e1000e-hang-test/debug/20261020T035202Z
+Tc[0x023]    000032220021180E 05B4360027000B68 000000000000000
+Td[0x024]    00000000FEDA6FC0 00000300AF100B9E 00000000FEDA6FC
+v2-exact: payload mismatches since 2026-10-20T03:51:17: 1
+v1-posted: module 85CEFF7A973FA775F84C5F4, wanted 
+v1-posted: guest tcp_timestamps=0
+v1-posted: module E7777359E1D6B11377D070E, guest traffic from 2026-10-20T04:04:10
+v1-posted: HANG 2026-10-20T04:11:23Z after 303 s (onset estimate); capture /var/lib/e1000e-hang-test/debug/20261020T040912Z
+Tc[0x06E]    000032220021180E 05B4360027000B68 000000000000000
+Td[0x06F]    00000000FF56CFC0 00000300AF100B9E 00000000FF56CFC
+v1-posted: payload mismatches since 2026-10-20T04:04:10: 1
+v2-exact: second HANG 2026-10-20T03:56:45Z (capture 20261020T035645Z), when the aborted v1 attempt restarted the guest with v2 still loaded; it is the 03:56:43 mismatch

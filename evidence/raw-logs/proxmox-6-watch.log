@@ -1,0 +1,103 @@
+2026-10-17T10:20:48Z armed on eno1 (msglvl 0x20ff, tracing instance e1000e)
+2026-10-18T08:05:06Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T080255Z
+2026-10-18T08:07:09Z armed on eno1 (msglvl 0x20ff, tracing instance e1000e)
+2026-10-18T08:19:48Z armed on eno1 (msglvl 0x20ff, tracing instance e1000e)
+2026-10-18T08:26:40Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T082430Z
+2026-10-18T08:28:39Z armed on eno1 (msglvl 0x20ff, tracing instance e1000e)
+2026-10-18T08:52:28Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T08:52:53Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T08:59:37Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T085727Z
+2026-10-18T09:01:40Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T09:31:38Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T09:35:51Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T09:59:26Z armed on eno1 (msglvl 0x000026ff, e1000e module C387E957FDEA34E99CF42D5, tracing instance e1000e)
+2026-10-18T10:04:19Z armed on eno1 (msglvl 0x000026ff, e1000e module 537BEA6F6E7EBAED67988B0, tracing instance e1000e)
+2026-10-18T10:35:18Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T103307Z
+2026-10-18T10:39:28Z armed on eno1 (msglvl 0x000026ff, e1000e module 537BEA6F6E7EBAED67988B0, tracing instance e1000e)
+2026-10-18T10:44:12Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T104202Z
+2026-10-18T10:48:17Z armed on eno1 (msglvl 0x000026ff, e1000e module 537BEA6F6E7EBAED67988B0, tracing instance e1000e)
+2026-10-18T10:50:51Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T104845Z
+2026-10-18T10:54:56Z armed on eno1 (msglvl 0x000026ff, e1000e module 537BEA6F6E7EBAED67988B0, tracing instance e1000e)
+2026-10-18T10:56:02Z armed on eno1 (msglvl 0x000026ff, e1000e module B37314849FE292DA0E26A41, tracing instance e1000e)
+2026-10-18T12:29:24Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T12:32:43Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T123033Z
+2026-10-18T12:36:53Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T12:42:29Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T124019Z
+2026-10-18T12:46:33Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T12:49:50Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T124739Z
+2026-10-18T12:53:55Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T12:57:33Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T125522Z
+2026-10-18T13:01:41Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T13:04:16Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T130209Z
+2026-10-18T13:08:21Z armed on eno1 (msglvl 0x000026ff, e1000e module E3A63E01041D6A13D1FAAFF, tracing instance e1000e)
+2026-10-18T13:12:26Z armed on eno1 (msglvl 0x000026ff, e1000e module 13BCF787596E0D3E967EF44, tracing instance e1000e)
+2026-10-18T13:42:28Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T134019Z
+2026-10-18T13:46:33Z armed on eno1 (msglvl 0x000026ff, e1000e module 13BCF787596E0D3E967EF44, tracing instance e1000e)
+2026-10-18T13:51:00Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T134849Z
+2026-10-18T13:55:09Z armed on eno1 (msglvl 0x000026ff, e1000e module 13BCF787596E0D3E967EF44, tracing instance e1000e)
+2026-10-18T13:58:04Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T135554Z
+2026-10-18T14:02:08Z armed on eno1 (msglvl 0x000026ff, e1000e module 13BCF787596E0D3E967EF44, tracing instance e1000e)
+2026-10-18T14:07:04Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T140454Z
+2026-10-18T14:11:08Z armed on eno1 (msglvl 0x000026ff, e1000e module 13BCF787596E0D3E967EF44, tracing instance e1000e)
+2026-10-18T14:17:41Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261018T141530Z
+2026-10-18T14:21:50Z armed on eno1 (msglvl 0x000026ff, e1000e module 13BCF787596E0D3E967EF44, tracing instance e1000e)
+2026-10-18T14:25:44Z armed on eno1 (msglvl 0x000026ff, e1000e module E7777359E1D6B11377D070E, tracing instance e1000e)
+2026-10-19T14:18:32Z armed on eno1 (msglvl 0x000026ff, e1000e module A1981ADDE3F02CFA4BFBD2E, tracing instance e1000e)
+2026-10-19T15:35:54Z armed on eno1 (msglvl 0x000026ff, e1000e module 0B84CD06AE663161F792A81, tracing instance e1000e)
+2026-10-19T19:36:00Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T19:41:47Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T193936Z
+2026-10-19T19:43:49Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T21:24:11Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T212200Z
+2026-10-19T21:26:11Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T21:30:34Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T212823Z
+2026-10-19T21:32:32Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T21:36:17Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T213407Z
+2026-10-19T21:38:21Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T21:42:33Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T214021Z
+2026-10-19T21:44:31Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T21:47:53Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T214541Z
+2026-10-19T21:49:52Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T22:11:22Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T220911Z
+2026-10-19T22:13:25Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T22:30:34Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T222822Z
+2026-10-19T22:32:33Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T22:48:40Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T224630Z
+2026-10-19T22:50:39Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T22:54:14Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T225202Z
+2026-10-19T22:56:19Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T22:59:44Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T225732Z
+2026-10-19T23:01:43Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T23:36:06Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T233355Z
+2026-10-19T23:37:30Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T23:40:42Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T233830Z
+2026-10-19T23:42:46Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T23:46:03Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261019T234351Z
+2026-10-19T23:48:01Z armed on eno1 (msglvl 0x000026ff, e1000e module FCDAFE43530487D18279336, tracing instance e1000e)
+2026-10-19T23:49:20Z armed on eno1 (msglvl 0x000026ff, e1000e module E287251C1D62E52A05C49F5, tracing instance e1000e)
+2026-10-20T00:07:49Z armed on eno1 (msglvl 0x000026ff, e1000e module E287251C1D62E52A05C49F5, tracing instance e1000e)
+2026-10-20T00:09:58Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T000754Z
+2026-10-20T00:10:40Z armed on eno1 (msglvl 0x000026ff, e1000e module E287251C1D62E52A05C49F5, tracing instance e1000e)
+2026-10-20T00:31:15Z armed on eno1 (msglvl 0x000026ff, e1000e module E287251C1D62E52A05C49F5, tracing instance e1000e)
+2026-10-20T00:49:32Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T01:04:13Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T010201Z
+2026-10-20T01:06:12Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T03:28:09Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T032559Z
+2026-10-20T03:30:12Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T03:50:35Z armed on eno1 (msglvl 0x000026ff, e1000e module 85CEFF7A973FA775F84C5F4, tracing instance e1000e)
+2026-10-20T03:54:14Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T035202Z
+2026-10-20T03:56:12Z armed on eno1 (msglvl 0x000026ff, e1000e module 85CEFF7A973FA775F84C5F4, tracing instance e1000e)
+2026-10-20T03:58:53Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T035645Z
+2026-10-20T04:00:52Z armed on eno1 (msglvl 0x000026ff, e1000e module 85CEFF7A973FA775F84C5F4, tracing instance e1000e)
+2026-10-20T04:03:25Z armed on eno1 (msglvl 0x000026ff, e1000e module E7777359E1D6B11377D070E, tracing instance e1000e)
+2026-10-20T04:11:23Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T040912Z
+2026-10-20T04:13:26Z armed on eno1 (msglvl 0x000026ff, e1000e module E7777359E1D6B11377D070E, tracing instance e1000e)
+2026-10-20T04:14:47Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T04:20:51Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T041840Z
+2026-10-20T04:22:49Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T04:52:48Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T045038Z
+2026-10-20T04:54:46Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T07:29:57Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T072746Z
+2026-10-20T07:32:01Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T08:02:13Z hang, link dead after 120 s, rebooting: /var/lib/e1000e-hang-test/debug/20261020T080001Z
+2026-10-20T08:03:42Z armed on eno1 (msglvl 0x000026ff, e1000e module FD6E76DAC2FB5C2001BFEAD, tracing instance e1000e)
+2026-10-20T09:11:26Z armed on eno1 (msglvl 0x000026ff, e1000e module 0582D5921B317EB28EC856D, tracing instance e1000e)

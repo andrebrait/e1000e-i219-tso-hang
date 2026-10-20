@@ -1,0 +1,5 @@
+2026-10-20T10:54:38 N=64 result=ok placed=1020 seconds=503 mismatches=0 (sweep3h = sweep3 + header buffer <= 372 B, hdr 66)
+2026-10-20T11:04:02 N=51 result=ok placed=1006 seconds=1407 mismatches=0 (sweep3h = sweep3 + header buffer <= 372 B, hdr 66)
+2026-10-20T11:28:30 N=60 result=ok placed=1000 seconds=1213 mismatches=0 (sweep3h = sweep3 + header buffer <= 372 B, hdr 66)
+2026-10-20T11:49:44 N=66 result=ok placed=1000 seconds=1092 mismatches=0 (sweep3h = sweep3 + header buffer <= 372 B, hdr 66)
+# Intel's 82574 erratum 17 workaround (header buffer <= 3*(max_read_request-4) = 372 B) prevents the I219 hang: 0 hangs, 0 corruption at N=64, 51, 60, 66 (about 1,000 placed packets each), where the same build without the cap hangs within seconds. The 4 KB boundary is still inside the window.

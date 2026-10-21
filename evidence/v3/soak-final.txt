@@ -1,0 +1,18 @@
+soak since 2026-10-21T09:21:55Z (7 h 56 min)
+module now:        08B710F2DB05F321DA64338 (boot 2026-10-20 19:46:47)
+hangs:             0
+boots since start: 0
+tx timeouts:       0
+unit hang msgs:    0
+tx_dropped (boot): 0
+tso segs (load):   120353
+phases:
+  2026-10-21T09:21:59Z phase 0 (timestamps on)
+  2026-10-21T12:00:22Z phase 0 (timestamps on)
+  2026-10-21T17:07:49Z soak interrupted: PBA readout
+  2026-10-21T17:09:30Z soak resumed on 08B710F2DB05F321DA64338
+  2026-10-21T17:13:48Z soak interrupted: TSO size
+  2026-10-21T17:18:04Z soak resumed on 08B710F2DB05F321DA64338
+payload mismatches: 0
+verified TCP:       2.85 TB
+verified UDP:       1358454 datagrams (0 bad, 890 lost)

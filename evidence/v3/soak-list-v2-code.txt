@@ -1,0 +1,13 @@
+soak since 2026-10-21T09:21:55Z (1 h 5 min)
+module now:        08B710F2DB05F321DA64338 (boot 2026-10-20 19:46:47)
+hangs:             0
+boots since start: 0
+tx timeouts:       0
+unit hang msgs:    0
+tx_dropped (boot): 0
+tso segs (load):   39094867
+phases:
+  2026-10-21T09:21:59Z phase 0 (timestamps on)
+payload mismatches: 0
+verified TCP:       0.38 TB
+verified UDP:       183960 datagrams (0 bad, 0 lost)

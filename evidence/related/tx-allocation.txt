@@ -1,0 +1,12 @@
+# Data descriptor lengths in all e1000e ring dumps in the journal of proxmox-6 (I219-LM, MTU 1500), count by length (hex)
+# lines parsed: 808031
+ 127676 17A0
+    222 179C
+      1 1798
+      1 1794
+      1 1790
+# 0x17A0 = 6048 = 6*1024 - 96: tx_fifo_limit with a 6 KB Tx allocation (Rx pba 26 KB)
+2026-10-21T19:07:49+02:00 proxmox-6 kernel: e1000e: e1000e test: PBA 0006001a (Rx 26 KB, Tx 6 KB) tx_fifo_limit 6048 tx_hdr_buf_max 372 readrq 128 mtu 1500
+2026-10-21T19:07:50+02:00 proxmox-6 kernel: e1000e: e1000e test: PBA 0006001a (Rx 26 KB, Tx 6 KB) tx_fifo_limit 6048 tx_hdr_buf_max 372 readrq 128 mtu 1500
+2026-10-21T19:08:45+02:00 proxmox-6 kernel: e1000e: e1000e test: PBA 0006001a (Rx 26 KB, Tx 6 KB) tx_fifo_limit 6048 tx_hdr_buf_max 372 readrq 128 mtu 1500
+# measured directly 2026-10-21 with test build fix/e1000e-print-pba.py (lines above)

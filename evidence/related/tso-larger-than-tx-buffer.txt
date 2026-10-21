@@ -1,0 +1,30 @@
+# TSO packets larger than the 6 KB Tx allocation, sent and verified
+# proxmox-6 (I219-LM), module v3 + fix/e1000e-instrument.py (srcversion DC7DCD38539A540A54EDAF0), window 2026-10-21T17:14:33Z .. 2026-10-21T17:17:34Z
+# tx_fifo_limit 6048 (PBA 0x0006001a, see tx-allocation.txt)
+
+TSO packets in the trace buffer: 40223
+larger than 6048 bytes: 39725
+
+# largest packets:
+      5 len=65226 headlen=70 frags=2 hdr=66 mss=1448 segs=45
+      1 len=65042 headlen=70 frags=3 hdr=66 mss=524 segs=124
+      1 len=64503 headlen=70 frags=2 hdr=66 mss=1448 segs=45
+      1 len=64144 headlen=70 frags=2 hdr=66 mss=1448 segs=45
+      1 len=63949 headlen=70 frags=2 hdr=66 mss=1448 segs=45
+
+# length distribution (8 KB buckets):
+  0-  8 KB: 558
+  8- 16 KB: 174
+ 16- 24 KB: 477
+ 24- 32 KB: 10342
+ 32- 40 KB: 22028
+ 40- 48 KB: 6194
+ 48- 56 KB: 422
+ 56- 64 KB: 28
+total:      40223
+
+# receiver (proxmox-5) during the window: payload mismatches and verified totals
+mismatches: 0
+2026-10-21T17:15:03Z totals tcp_bytes=10471380604272 tcp_bad_chunks=31 tcp_conns=586 udp_ok=4995272 udp_bad=0 udp_gaps=4457
+2026-10-21T17:16:03Z totals tcp_bytes=10477348814667 tcp_bad_chunks=31 tcp_conns=586 udp_ok=4998222 udp_bad=0 udp_gaps=4457
+2026-10-21T17:17:03Z totals tcp_bytes=10483317075198 tcp_bad_chunks=31 tcp_conns=586 udp_ok=5001055 udp_bad=0 udp_gaps=4457

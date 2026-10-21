@@ -1,0 +1,6 @@
+[Unit]
+Description=e1000e soak: apply the current traffic phase (temporary)
+After=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/e1000e-soak-phase.sh

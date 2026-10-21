@@ -1,0 +1,8 @@
+[Unit]
+Description=e1000e soak: rotate guest traffic every 12 h (temporary)
+[Timer]
+OnBootSec=5min
+OnCalendar=*-*-* 00,12:00:00 UTC
+Persistent=true
+[Install]
+WantedBy=timers.target

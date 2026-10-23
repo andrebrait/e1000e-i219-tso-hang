@@ -1,0 +1,8 @@
+# list v3 = tested v3 + comment (fix/e1000e-v3-comment.py); netdev.o compared section by section
+# v3: srcversion 08B710F2DB05F321DA64338, v3c: 08B710F2DB05F321DA64338
+.text 786919175e1b8ff6 786919175e1b8ff6 same
+.text.unlikely a09849841f872462 a09849841f872462 same
+.rodata 5af7914ce4a3b004 5af7914ce4a3b004 same
+.data e2a132f9cb23f75e f1565c614bad2615 differs
+objdump -d: identical
+# .data: one 32-bit word differs, 5882 -> 5885, a source line number shifted by the 3 comment lines

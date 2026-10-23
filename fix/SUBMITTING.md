@@ -11,7 +11,7 @@ was never sent: it had the same blind spot as v1 and a transmit-stall bug (see `
 
 v2 is the commit on branch `e1000e-v3` of `~/git/kernel/net-queue` (base `dev-queue`,
 `0344a46e40a4`). Its changelog is `v3-commit-message.txt`; the notes below the `---` come from
-`v3-reviewer-notes.txt`, attached as a git note. Both link the public evidence pinned at
+`v3-reviewer-notes.txt` (list v2) and `list-v3-notes.txt` (list v3), attached as git notes. Both link the public evidence pinned at
 https://github.com/andrebrait/e1000e-i219-tso-hang/tree/08c29e379bac .
 
 ## Where it goes

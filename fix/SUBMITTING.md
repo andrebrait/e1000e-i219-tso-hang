@@ -3,7 +3,8 @@
 | Version on the list | Status |
 |---|---|
 | v1, "e1000e: segment TSO packets whose headers cross a 4 KB boundary" | sent 2026-10-18: https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/ ; superseded |
-| v2, "e1000e: work around TSO erratum that corrupts data and hangs Tx" | ready, not sent: `v2-0001-e1000e-work-around-TSO-erratum-that-corrupts-data.patch` |
+| v2, "e1000e: work around TSO erratum that corrupts data and hangs Tx" | sent 2026-10-20 23:02 UTC: https://lore.kernel.org/netdev/20261020230211.75665-1-andrebrait@gmail.com/ ; reviewed by David Laight |
+| v3, same subject: v2 plus a comment on the spare descriptor and a changelog paragraph (David's review); generated code identical to v2 | ready: `v3-0001-e1000e-work-around-TSO-erratum-that-corrupts-data.patch`, branch `e1000e-list-v3` |
 
 An intermediate fix (tag `e1000e-v2-candidate`, "check the final layout in `e1000_xmit_frame()`")
 was never sent: it had the same blind spot as v1 and a transmit-stall bug (see `../REPORT.md`).
@@ -44,12 +45,12 @@ does not add `Signed-off-by` and does not send the patch: only the submitter can
 
 ## Sending (submitter)
 
-In `~/git/kernel/net-queue` on branch `e1000e-v3`:
+In `~/git/kernel/net-queue` on branch `e1000e-list-v3`:
 
 1. Read the patch and the notes, then certify the DCO: `git commit --amend -s --no-edit`
-2. Regenerate: `rm -rf outgoing && git format-patch -v2 -1 -o outgoing`
+2. Regenerate: `rm -rf outgoing && git format-patch -v3 -1 -o outgoing`
 3. Send (asks for the Gmail app password, stored in the keychain after the first time):
-   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc="Gabriel Goller <g.goller@proxmox.com>" outgoing/*.patch`
+   `git send-email --to=intel-wired-lan@lists.osuosl.org --cc=netdev@vger.kernel.org --cc=anthony.l.nguyen@intel.com --cc=przemyslaw.kitszel@intel.com --cc=g.goller@proxmox.com --cc=david.laight.linux@gmail.com outgoing/*.patch`
 
 Post it as a new thread, not as a reply to v1: `Documentation/process/maintainer-netdev.rst`
 ("Resending after review") asks for a separate thread with a link to the previous posting, which

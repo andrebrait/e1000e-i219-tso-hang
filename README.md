@@ -5,7 +5,9 @@ v1 ("e1000e: segment TSO packets whose headers cross a 4 KB boundary") was poste
 intel-wired-lan and netdev on 2026-10-18
 (https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/); review led to
 a deeper investigation and a different fix, "e1000e: work around TSO erratum that corrupts data and
-hangs Tx".
+hangs Tx": v2 (https://lore.kernel.org/netdev/20261020230211.75665-1-andrebrait@gmail.com/),
+then v3 (https://lore.kernel.org/netdev/20261024004630.24579-1-andrebrait@gmail.com/), which
+adds a comment and a changelog paragraph requested in review; the code is the same as v2.
 
 **The bug.** When the first buffer of a TSO packet is long and a 4 KB boundary lies just after its
 headers, the NIC repeats a DMA read: it transmits TCP segments carrying the stream data from 128

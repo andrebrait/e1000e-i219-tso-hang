@@ -3,8 +3,8 @@
 | Version on the list | Status |
 |---|---|
 | v1, "e1000e: segment TSO packets whose headers cross a 4 KB boundary" | sent 2026-10-18: https://lore.kernel.org/netdev/20261018203215.77371-1-andrebrait@gmail.com/ ; superseded |
-| v2, "e1000e: work around TSO erratum that corrupts data and hangs Tx" | sent 2026-10-20 23:02 UTC: https://lore.kernel.org/netdev/20261020230211.75665-1-andrebrait@gmail.com/ ; reviewed by David Laight |
-| v3, same subject: v2 plus a comment on the spare descriptor and a changelog paragraph (David's review); generated code identical to v2 | ready: `v3-0001-e1000e-work-around-TSO-erratum-that-corrupts-data.patch`, branch `e1000e-list-v3` |
+| v2, "e1000e: work around TSO erratum that corrupts data and hangs Tx" | sent 2026-10-20 23:02 UTC: https://lore.kernel.org/netdev/20261020230211.75665-1-andrebrait@gmail.com/ ; reviewed by David Laight; superseded |
+| v3, same subject: v2 plus a comment on the spare descriptor and a changelog paragraph (David's review); generated code identical to v2 | sent 2026-10-24 00:46 UTC: https://lore.kernel.org/netdev/20261024004630.24579-1-andrebrait@gmail.com/ ; branch `e1000e-list-v3` |
 
 An intermediate fix (tag `e1000e-v2-candidate`, "check the final layout in `e1000_xmit_frame()`")
 was never sent: it had the same blind spot as v1 and a transmit-stall bug (see `../REPORT.md`).
